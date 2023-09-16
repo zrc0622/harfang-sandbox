@@ -191,7 +191,7 @@ class HarfangEnv():
         States = np.concatenate((Pos_Diff, Plane_Euler, Plane_Heading,
                                  Oppo_Heading, Oppo_Pitch_Att, Oppo_Roll_Att, target_angle, oppo_hea, locked, missile1_state), axis=None) # gai 感觉加入敌机健康值没用
         
-        # 姿态差距(3), 飞机欧拉角(3), 飞机航向角, 敌机航向角， 敌机俯仰， 敌机滚动, 锁敌角, 敌机血量， 是否锁敌， 导弹状态
+        # 距离差距(3), 飞机欧拉角(3), 飞机航向角, 敌机航向角， 敌机俯仰， 敌机滚动, 锁敌角, 敌机血量， 是否锁敌， 导弹状态
 
         # self.now_missile_state = False # 未来的状态均不发射（不能加，因为后续计算奖励函数需要）
 

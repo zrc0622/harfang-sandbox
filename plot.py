@@ -41,8 +41,14 @@ def draw_pos(file_name, self_pos, oppo_pos, dir):
     self_pos = np.array(self_pos)
     oppo_pos = np.array(oppo_pos)
 
-    ax.plot(self_pos[:, 0], self_pos[:, 1], self_pos[:, 2], label='self')
-    ax.plot(oppo_pos[:, 0], oppo_pos[:, 1], oppo_pos[:, 2], label='oppo')
+    num_points = len(self_pos)
+
+    colors = plt.cm.jet(np.linspace(0,1,num_points))
+
+    for i in range(num_points - 1):
+        ax.plot(self_pos[i:i+2, 0], self_pos[i:i+2, 1], self_pos[i:i+2, 2], color=colors[i], label='self')
+        ax.plot(oppo_pos[i:i+2, 0], oppo_pos[i:i+2, 1], oppo_pos[i:i+2, 2], color=colors[i], label='oppo')
+    
     plt.legend()
     file_name = os.path.join(dir, file_name)
     plt.savefig(file_name, bbox_inches='tight')
