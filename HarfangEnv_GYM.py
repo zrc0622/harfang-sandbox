@@ -199,15 +199,15 @@ class HarfangEnv():
 
     def get_pos(self):
         plane_state = df.get_plane_state(self.Plane_ID_ally)
-        return np.array([plane_state["position"][0] / NormStates["Plane_position"],
-                plane_state["position"][1] / NormStates["Plane_position"],
-                plane_state["position"][2] / NormStates["Plane_position"]])
+        return np.array([plane_state["position"][0],
+                plane_state["position"][1],
+                plane_state["position"][2]])
 
     def get_oppo_pos(self):
         plane_state = df.get_plane_state(self.Plane_ID_oppo)
-        return np.array([plane_state["position"][0] / NormStates["Plane_position"],
-                plane_state["position"][1] / NormStates["Plane_position"],
-                plane_state["position"][2] / NormStates["Plane_position"]])
+        return np.array([plane_state["position"][0],
+                plane_state["position"][1],
+                plane_state["position"][2]])
 
     def save_parameters_to_txt(self, log_dir):
         # os.makedirs(log_dir)
