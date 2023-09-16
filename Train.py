@@ -171,7 +171,7 @@ if not Test:
                             self_pos.append(env.get_pos())
                             oppo_pos.append(env.get_oppo_pos())
                     if done:
-                        if env.loc_diff < 300: # 改
+                        if env.loc_diff < 500: # 改
                             success += 1
                         break
 
