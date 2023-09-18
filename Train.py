@@ -32,8 +32,8 @@ df.disable_log()
 
 # PARAMETERS
 trainingEpisodes = 6000
-validationEpisodes = 100
-explorationEpisodes = 200
+validationEpisodes = 100 # 100
+explorationEpisodes = 200 # 200
 
 Test = False
 if Test:
@@ -49,7 +49,7 @@ gamma = 0.99
 criticLR = 1e-3
 actorLR = 1e-3
 tau = 0.005
-checkpointRate = 100
+checkpointRate = 100 # 100
 highScore = -math.inf
 successRate = -math.inf
 batchSize = 128
@@ -81,7 +81,7 @@ env.save_parameters_to_txt(log_dir)
 
 writer = SummaryWriter(log_dir)
 arttir = 1
-# agent.loadCheckpoints(f"Agent{arttir-1}_") # 使用未添加导弹的结果进行训练
+agent.loadCheckpoints(f"Agent_") # 使用未添加导弹的结果进行训练
 
 if not Test:
     # RANDOM EXPLORATION
@@ -171,7 +171,7 @@ if not Test:
                             self_pos.append(env.get_pos())
                             oppo_pos.append(env.get_oppo_pos())
                     if done:
-                        if env.loc_diff < 500: # 改
+                        if 500 < env.Plane_Irtifa < 10000: # 改
                             success += 1
                         break
 
@@ -211,7 +211,7 @@ else:
                 state = n_state
                 totalReward += reward
             if done:
-                if env.loc_diff < 300:
+                if env.loc_diff < 200:
                     success += 1
                 break
 
