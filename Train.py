@@ -39,7 +39,7 @@ Test = False
 if Test:
     render = False
 else:
-    render = True
+    render = False
     
 df.set_renderless_mode(render)
 df.set_client_update_mode(True)
@@ -69,19 +69,20 @@ env = HarfangEnv()
 
 agent = Agent(actorLR, criticLR, stateDim, actionDim, hiddenLayer1, hiddenLayer2, tau, gamma, bufferSize, batchSize, useLayerNorm, name)
 
-start_time = datetime.datetime.now()
-dir = Path.cwd() # 获取工作区路径
-log_dir = str(dir) + "\\" + "new_runs\\" + str(start_time.year)+'_'+str(start_time.month)+'_'+str(start_time.day)+'_'+str(start_time.hour)+'_'+str(start_time.minute) # tensorboard文件夹路径
-plot_dir = log_dir + "\\" + "plot"
-os.makedirs(log_dir, exist_ok=True)
-os.makedirs(plot_dir, exist_ok=True)
+if not Test:
+    start_time = datetime.datetime.now()
+    dir = Path.cwd() # 获取工作区路径
+    log_dir = str(dir) + "\\" + "new_runs\\" + str(start_time.year)+'_'+str(start_time.month)+'_'+str(start_time.day)+'_'+str(start_time.hour)+'_'+str(start_time.minute) # tensorboard文件夹路径
+    plot_dir = log_dir + "\\" + "plot"
+    os.makedirs(log_dir, exist_ok=True)
+    os.makedirs(plot_dir, exist_ok=True)
 
-save_parameters_to_txt(log_dir=log_dir,bufferSize=bufferSize,criticLR=criticLR,actorLR=actorLR,batchSize=batchSize,maxStep=maxStep,validatStep=validatStep,hiddenLayer1=hiddenLayer1,hiddenLayer2=hiddenLayer2)
-env.save_parameters_to_txt(log_dir)
+    save_parameters_to_txt(log_dir=log_dir,bufferSize=bufferSize,criticLR=criticLR,actorLR=actorLR,batchSize=batchSize,maxStep=maxStep,validatStep=validatStep,hiddenLayer1=hiddenLayer1,hiddenLayer2=hiddenLayer2)
+    env.save_parameters_to_txt(log_dir)
 
-writer = SummaryWriter(log_dir)
+    writer = SummaryWriter(log_dir)
 arttir = 1
-agent.loadCheckpoints(f"Agent_") # 使用未添加导弹的结果进行训练
+agent.loadCheckpoints(f"Agent0_") # 使用未添加导弹的结果进行训练
 
 if not Test:
     # RANDOM EXPLORATION
@@ -177,7 +178,7 @@ if not Test:
 
                 valScores.append(totalReward)
 
-            if mean(valScores) > highScore or success/validationEpisodes > successRate:
+            if mean(valScores) > highScore or success/validationEpisodes > successRate or arttir%100==0:
                 if mean(valScores) > highScore: # 总奖励分数
                     highScore = mean(valScores)
                     agent.saveCheckpoints("Agent{}_score{}".format(arttir, highScore))
@@ -205,6 +206,7 @@ else:
             if not done:
                 action = agent.chooseActionNoNoise(state)
                 n_state,reward,done, info  = env.step(action)
+                print(n_state[10])
                 if step is validatStep - 1:
                     done = True
 

@@ -27,6 +27,7 @@ class HarfangEnv():
         self.missile = df.get_machine_missiles_list(self.Plane_ID_ally) # gai 导弹列表
         self.missile1_id = self.missile[0] # 导弹1
         self.oppo_health = 0.2 # gai 敌机血量
+        self.target_angle = None
 
     def reset(self):  # reset simulation beginning of episode
         self.done = False
@@ -48,21 +49,23 @@ class HarfangEnv():
     def _get_reward(self):
         self.reward = 0
         self._get_loc_diff()  # get location difference information for reward
-        self.reward -= (0.0001 * (self.loc_diff))
+        self.reward -= (0.0001 * (self.loc_diff)) # 0.4
 
         # if self.loc_diff < 500:
         #     self.reward += 1000
 
-        if self.plane_heading > 180:
-            deger_1 = (self.plane_heading - 360)
-        else:
-            deger_1 = self.plane_heading
+        # if self.plane_heading > 180: # -2
+        #     deger_1 = (self.plane_heading - 360)
+        # else:
+        #     deger_1 = self.plane_heading
 
-        if self.plane_heading_2 > 180:
-            deger_2 = (self.plane_heading_2 - 360)
-        else:
-            deger_2 = self.plane_heading_2
-        self.reward -= abs(deger_1 - deger_2) / 90
+        # if self.plane_heading_2 > 180:
+        #     deger_2 = (self.plane_heading_2 - 360)
+        # else:
+        #     deger_2 = self.plane_heading_2
+        # self.reward -= abs(deger_1 - deger_2) / 90
+
+        self.reward -= self.target_angle*5
 
         if self.Plane_Irtifa < 2000:
             self.reward -= 4
@@ -70,16 +73,20 @@ class HarfangEnv():
         if self.Plane_Irtifa > 7000:
             self.reward -= 4
 
-        # if self.now_missile_state == True: # gai 如果本次step导弹发射
-        #     if self.missile1_state == False and self.Ally_target_locked == False: # 且导弹不存在、不锁敌
-        #         self.reward -= 10 # 则扣10分
-        #     elif self.missile1_state == True and self.Ally_target_locked == True: # 且导弹存在且锁敌
-        #         self.reward += 100 # 则加1000分
-        #     else:
-        #         self.reward -= 5 # 则扣5分
+        if self.now_missile_state == True: # gai 如果本次step导弹发射
+            if self.missile1_state == False and self.Ally_target_locked == False: # 且导弹不存在、不锁敌
+                self.reward -= 6 # 则扣10分
+            elif self.missile1_state == True and self.Ally_target_locked == True: # 且导弹存在且锁敌
+                self.reward += 100 # 则加1000分
+            else:
+                self.reward -= 3 # 则扣5分
 
         # if self.oppo_health <= 0:
         #     self.reward += 200
+        # 
+        # 可以添加锁敌保持奖励
+        # 可以删去航向角奖励（航向角是否有用）
+        # 确认锁敌角的含义
 
     def _apply_action(self, action_ally):
         df.set_plane_pitch(self.Plane_ID_ally, float(action_ally[0]))
@@ -94,15 +101,17 @@ class HarfangEnv():
 
         if float(action_ally[3] > 0): # 大于0发射导弹
             # if self.missile1_state == True: # 如果导弹存在（不判断是为了奖励函数服务，也符合动作逻辑）
-                df.fire_missile(self.Plane_ID_ally, 0) # gai
-                self.now_missile_state = True # 此时导弹发射
+            df.fire_missile(self.Plane_ID_ally, 0) # gai
+            self.now_missile_state = True # 此时导弹发射
+        else:
+            self.now_missile_state = False
         
         df.update_scene()
         
 
     def _get_termination(self):
-        if self.loc_diff < 500:
-            self.done = True
+        # if self.loc_diff < 200:
+        #     self.done = True
         if self.Plane_Irtifa < 500 or self.Plane_Irtifa > 10000:
             self.done = True
         if self.oppo_health['health_level'] <= 0: # gai 敌机血量低于0则结束
@@ -166,7 +175,8 @@ class HarfangEnv():
         else:
             locked = -1
 
-        target_angle = plane_state['target_angle'] / 360
+        target_angle = plane_state['target_angle'] / 180
+        self.target_angle = target_angle
         
         Pos_Diff = [Plane_Pos[0] - Oppo_Pos[0], Plane_Pos[1] - Oppo_Pos[1], Plane_Pos[2] - Oppo_Pos[2]]
         
