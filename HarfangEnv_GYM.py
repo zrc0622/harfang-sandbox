@@ -31,9 +31,9 @@ class HarfangEnv():
 
     def reset(self):  # reset simulation beginning of episode
         self.done = False
-        state_ally = self._get_observation()  # get observations
         self._reset_machine()
         self._reset_missile() # gai 重设导弹
+        state_ally = self._get_observation()  # get observations
         df.set_target_id(self.Plane_ID_ally, self.Plane_ID_oppo)  # set target, for firing missile
 
         return state_ally
@@ -45,7 +45,15 @@ class HarfangEnv():
         self._get_termination()  # check termination conditions
 
         return state_ally, self.reward, self.done, {}
+    
+    def step_test(self, action_ally):
+        self._apply_action(action_ally)  # apply neural networks output
+        state_ally = self._get_observation()  # in each step, get observation
+        self._get_reward()  # get reward value
+        self._get_termination()  # check termination conditions
 
+        return state_ally, self.reward, self.done, {}, self.now_missile_state, self.missile1_state, self.n_missile1_state, self.Ally_target_locked
+    
     def _get_reward(self):
         self.reward = 0
         self._get_loc_diff()  # get location difference information for reward
@@ -65,7 +73,7 @@ class HarfangEnv():
         #     deger_2 = self.plane_heading_2
         # self.reward -= abs(deger_1 - deger_2) / 90
 
-        self.reward -= self.target_angle*5
+        self.reward -= self.target_angle*10
 
         if self.Plane_Irtifa < 2000:
             self.reward -= 4
@@ -75,11 +83,11 @@ class HarfangEnv():
 
         if self.now_missile_state == True: # gai 如果本次step导弹发射
             if self.missile1_state == False and self.Ally_target_locked == False: # 且导弹不存在、不锁敌
-                self.reward -= 6 # 则扣10分
+                self.reward -= 10*(0.0001 * (self.loc_diff)) # 则扣10分
             elif self.missile1_state == True and self.Ally_target_locked == True: # 且导弹存在且锁敌
                 self.reward += 100 # 则加1000分
             else:
-                self.reward -= 3 # 则扣5分
+                self.reward -= 5*(0.0001 * (self.loc_diff)) # 则扣5分
 
         # if self.oppo_health <= 0:
         #     self.reward += 200
