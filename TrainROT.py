@@ -37,7 +37,7 @@ trainingEpisodes = 6000
 validationEpisodes = 100 # 100
 explorationEpisodes = 200 # 200
 
-Test = True
+Test = False
 if Test:
     render = False
 else:
@@ -64,7 +64,7 @@ actionDim = 4 # gai
 useLayerNorm = True
 bc_weight = 0.5 # rot
 
-data_dir = 'C:/Users/zuo/Desktop/code/harfang/mine/harfang-sandbox/expert_data.csv'
+data_dir = 'C:/Users/zuo/Desktop/code/harfang/mine/harfang-sandbox/expert_data_ai.csv'
 expert_states, expert_actions = read_data(data_dir)
 print(expert_states.shape)
 print(expert_actions.shape)
@@ -139,9 +139,12 @@ if not Test:
                 totalReward += reward
 
                 if agent.buffer.fullEnough(agent.batchSize):
-                    critic_loss, actor_loss = agent.learn()
+                    critic_loss, actor_loss, bc_loss, rl_loss, bc_fire_loss = agent.learn()
                     writer.add_scalar('Loss/Critic_Loss', critic_loss, step + episode * maxStep)
                     writer.add_scalar('Loss/Actor_Loss', actor_loss, step + episode * maxStep)
+                    writer.add_scalar('Loss/BC_Loss', bc_loss, step + episode * maxStep)
+                    writer.add_scalar('Loss/RL_Loss', rl_loss, step + episode * maxStep)     
+                    writer.add_scalar('Loss/BC_Fire_Loss', bc_fire_loss, step + episode * maxStep)
                     
                 if done:
                     break

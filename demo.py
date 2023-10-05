@@ -3,8 +3,9 @@ import time
 from DemoEnv import *
 import pickle
 import numpy as np
+import csv
 
-df.connect("10.241.58.126", 50888) # 连接环境
+df.connect("10.243.58.131", 50888) # 连接环境
 time.sleep(2) # 等待连接
 df.disable_log() # 关闭日志？
 render = False
@@ -26,12 +27,12 @@ action_dim = 4
 state_list = []
 action_list = []
 
-df.activate_IA(plane_id)
-t = 0
-while t < 6000:
-    time.sleep(1/20)
-    df.update_scene()
-time.sleep(60)
+# df.activate_IA(plane_id)
+# t = 0
+# while t < 6000:
+#     time.sleep(1/20)
+#     df.update_scene()
+# time.sleep(60)
 
 # 直线飞
 t = 0
@@ -134,10 +135,11 @@ action_array = np.array(action_list)
 state_array = np.array(state_list)
 data = [state_array, action_array]
 
-filename = 'expert_data.pkl'
+filename = 'expert_data.csv'
 
-with open(filename, 'wb') as file: # 打开pickle文件
-    pickle.dump(data, file) # 写入pickle文件
+with open(filename, 'w', newline='') as file:  # 打开CSV文件，注意要指定newline=''以避免空行
+    writer = csv.writer(file)
+    writer.writerows(data)  # 将数据写入CSV文件
 
 df.set_client_update_mode(False)
 df.disconnect()

@@ -1,5 +1,7 @@
 #IMPORTS
-from NeuralNetwork import Agent
+from NeuralNetwork import Agent as Agent
+from ROTNeuralNetwork import Agent as ROTAgent
+from read_data import read_data
 from ReplayMemory  import *
 import numpy as np
 import time
@@ -35,11 +37,11 @@ trainingEpisodes = 6000
 validationEpisodes = 100 # 100
 explorationEpisodes = 200 # 200
 
-Test = False
+Test = True
 if Test:
     render = False
 else:
-    render = False
+    render = True
     
 df.set_renderless_mode(render)
 df.set_client_update_mode(True)
@@ -67,7 +69,17 @@ name = "Harfang_GYM"
 #INITIALIZATION
 env = HarfangEnv()
 
-agent = Agent(actorLR, criticLR, stateDim, actionDim, hiddenLayer1, hiddenLayer2, tau, gamma, bufferSize, batchSize, useLayerNorm, name)
+agent = 'TD3'
+
+if agent == 'rot':
+    bc_weight = 0.1 # rot
+    data_dir = 'C:/Users/zuo/Desktop/code/harfang/mine/harfang-sandbox/expert_data.csv'
+    expert_states, expert_actions = read_data(data_dir)
+    print(expert_states.shape)
+    print(expert_actions.shape)
+    agent = ROTAgent(actorLR, criticLR, stateDim, actionDim, hiddenLayer1, hiddenLayer2, tau, gamma, bufferSize, batchSize, useLayerNorm, name, expert_states, expert_actions, bc_weight)
+elif agent == 'TD3':
+    agent = Agent(actorLR, criticLR, stateDim, actionDim, hiddenLayer1, hiddenLayer2, tau, gamma, bufferSize, batchSize, useLayerNorm, name)
 
 if not Test:
     start_time = datetime.datetime.now()
@@ -83,6 +95,7 @@ if not Test:
     writer = SummaryWriter(log_dir)
 arttir = 1
 agent.loadCheckpoints(f"Agent0_") # 使用未添加导弹的结果进行训练
+# agent.loadCheckpoints(f"Agent33_score-11460.099466018752") # 使用未添加导弹的结果进行训练
 
 if not Test:
     # RANDOM EXPLORATION
@@ -147,8 +160,8 @@ if not Test:
             'RunTime: ', hours, ':',minutes,':', seconds)
             
         #VALIDATION
-        success = 0
         if (((episode + 1) % checkpointRate) == 0):
+            success = 0
             valScores = []
             dif = []
             self_pos = []
@@ -161,9 +174,6 @@ if not Test:
                     if not done:
                         action = agent.chooseActionNoNoise(state)
                         n_state, reward, done, info = env.step(action)
-                        if step is maxStep - 1:
-                            done = True
-
                         state = n_state
                         totalReward += reward
 
@@ -171,14 +181,18 @@ if not Test:
                             dif.append(env.loc_diff)
                             self_pos.append(env.get_pos())
                             oppo_pos.append(env.get_oppo_pos())
-                    if done:
+
+                        if step is validatStep - 1:
+                            break
+
+                    elif done:
                         if 500 < env.Plane_Irtifa < 10000: # 改
                             success += 1
                         break
 
                 valScores.append(totalReward)
 
-            if mean(valScores) > highScore or success/validationEpisodes > successRate or arttir%100==0:
+            if mean(valScores) > highScore or success/validationEpisodes > successRate or arttir%10 == 0:
                 if mean(valScores) > highScore: # 总奖励分数
                     highScore = mean(valScores)
                     agent.saveCheckpoints("Agent{}_score{}".format(arttir, highScore))
@@ -193,7 +207,7 @@ if not Test:
         
             arttir += 1
 
-            print('Validation Episode: ', (episode//checkpointRate)+1, ' Average Reward:', mean(valScores), ' Success Rate:', successRate)
+            print('Validation Episode: ', (episode//checkpointRate)+1, ' Average Reward:', mean(valScores), ' Success Rate:', success / validationEpisodes)
             writer.add_scalar('Validation/Avg Reward', mean(valScores), episode)
             writer.add_scalar('Validation/Success Rate', success/validationEpisodes, episode)
 else:
@@ -202,11 +216,17 @@ else:
         state = env.reset()
         totalReward = 0
         done = False
+        print('before state: ', state)
         for step in range(validatStep):
             if not done:
                 action = agent.chooseActionNoNoise(state)
-                n_state,reward,done, info  = env.step(action)
-                print(n_state[10])
+                n_state,reward,done, info, iffire, beforeaction, afteraction, locked   = env.step_test(action)
+                if step < 5:
+                    print(step)
+                    print('action: ', action)
+                    print('next state: ', n_state)
+                    print('before missile: ' , beforeaction, '  if fire: ', iffire, '   after missile: ', afteraction, '    locked', locked)
+                    print("+"*15)
                 if step is validatStep - 1:
                     done = True
 

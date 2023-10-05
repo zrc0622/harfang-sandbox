@@ -1,5 +1,5 @@
 # bc weight的0.03怎么确定：先设为1跑起来后观察二者的loss，再估计一个合适的loss
-# 是否使用随step逐渐降低的权重
+# 是否使用随step逐渐降低的权重：可以尝试
 # 什么是finetune
 # 总的任务成功率和return曲线、对比轨迹
 import torch
@@ -166,6 +166,7 @@ class Agent(nn.Module):
         self.expert_states = expert_states
         self.expert_actions = expert_actions
         self.bc_weight = bc_weight
+        self.target_indices = self.up_sample(self.expert_actions)
         
         self.actor = Actor(actorLR,stateDim,actionDim, full1Dim, full2Dim, layerNorm, 'Actor_'+name)
         self.targetActor = Actor(actorLR,stateDim,actionDim, full1Dim, full2Dim, layerNorm, 'TargetActor_'+name)
@@ -202,6 +203,11 @@ class Agent(nn.Module):
     def store(self, *args):
         self.buffer.store(*args)
         
+    def up_sample(self, BCActions):
+        target_indices = np.where(BCActions[:, 3] == 1)[0]
+        print('target indices: ', target_indices)
+        return target_indices 
+
     def learn(self):
 
         #SAMPLING
@@ -221,6 +227,13 @@ class Agent(nn.Module):
         batch_indices = np.random.choice(samples_num, self.batchSize, replace=False)
         BCbatchState = BCStates[batch_indices]
         BCbatchAction = BCActions[batch_indices]
+
+        selected_target_indices = np.random.choice(self.target_indices)
+        replace_index = np.random.randint(self.batchSize)
+        BCbatchState[replace_index] = BCStates[selected_target_indices]
+        BCbatchAction[replace_index] = BCActions[selected_target_indices]
+
+        print(BCStates[selected_target_indices], BCActions[selected_target_indices])
         
         self.targetActor.eval()
         self.targetCritic.eval()
@@ -257,11 +270,18 @@ class Agent(nn.Module):
         if self.actorTrainable is True:
             self.actor.train()
             self.nextAction = self.actor(batchState)
-            self.actor_loss = -self.critic.onlyQ1(batchState,self.nextAction).mean()*(1-self.bc_weight)
+            self.actor_loss = -self.critic.onlyQ1(batchState,self.nextAction).mean()*(1-self.bc_weight) # rl loss
+
+            rl_loss = self.actor_loss
 
             BCnextAction = self.actor(BCbatchState)
             bc_loss = F.mse_loss(BCnextAction, BCbatchAction)
-            self.actor_loss += bc_loss*self.bc_weight
+
+            firebatchAction = BCbatchAction[:, 3]
+            firenextAction = BCnextAction[:, 3]
+            bc_fire_loss = F.mse_loss(firenextAction, firebatchAction)
+
+            self.actor_loss += bc_loss*self.bc_weight # bc loss
 
             self.actor.optimizer.zero_grad()
             self.actor_loss.backward()
@@ -272,7 +292,7 @@ class Agent(nn.Module):
         
         self.actorTrainable = not self.actorTrainable
         
-        return self.critic_loss.mean().cpu().detach().numpy(), self.actor_loss.cpu().detach().numpy(), 
+        return self.critic_loss.mean().cpu().detach().numpy(), self.actor_loss.cpu().detach().numpy(), bc_loss.cpu().detach().numpy(), rl_loss.cpu().detach().numpy(), bc_fire_loss.cpu().detach().numpy()
         
     def saveCheckpoints(self,ajan):
         self.critic.saveCheckpoint(ajan)
