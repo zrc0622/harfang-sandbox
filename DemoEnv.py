@@ -130,7 +130,7 @@ class DemoEnv():
                     (self.Aircraft_Loc[1] - self.Oppo_Loc[1]) ** 2) + (
                                      (self.Aircraft_Loc[2] - self.Oppo_Loc[2]) ** 2)) ** (1 / 2)
 
-    def _get_observation(self):
+    def _get_observation(self): # 注意get的是n_state
         # Plane States
         plane_state = df.get_plane_state(self.Plane_ID_ally)
         Plane_Pos = [plane_state["position"][0] / NormStates["Plane_position"],
@@ -156,7 +156,7 @@ class DemoEnv():
         self.Plane_Irtifa = plane_state["position"][1]
         self.Aircraft_Loc = plane_state["position"]
         self.Oppo_Loc = Oppo_state["position"]
-        
+
         self.Ally_target_locked = self.n_Ally_target_locked
         self.n_Ally_target_locked = plane_state["target_locked"]
         if self.n_Ally_target_locked == True: # gai 
@@ -164,11 +164,14 @@ class DemoEnv():
         else:
             locked = -1
 
-        target_angle = plane_state['target_angle'] / 360
+        target_angle = plane_state['target_angle'] / 180
+        self.target_angle = target_angle
+        
         Pos_Diff = [Plane_Pos[0] - Oppo_Pos[0], Plane_Pos[1] - Oppo_Pos[1], Plane_Pos[2] - Oppo_Pos[2]]
         
         self.oppo_health = df.get_health(self.Plane_ID_oppo)
-        oppo_hea = self.oppo_health['health_level'] # gai 敌机初始血量（health）为20，health_level为0.2，导弹伤害为30
+        
+        oppo_hea = self.oppo_health['health_level'] # gai 敌机初始血量为20
 
         # if self.now_missile_state == True:
         #     if_fire = 1
@@ -185,9 +188,11 @@ class DemoEnv():
             missile1_state = -1
 
         States = np.concatenate((Pos_Diff, Plane_Euler, Plane_Heading,
-                                 Oppo_Heading, Oppo_Pitch_Att, Oppo_Roll_Att, target_angle, oppo_hea, locked, missile1_state), axis=None) # gai 感觉加入敌机健康值没用 
+                                 Oppo_Heading, Oppo_Pitch_Att, Oppo_Roll_Att, target_angle, oppo_hea, locked, missile1_state), axis=None) # gai 感觉加入敌机健康值没用
         
-        # self.now_missile_state = False
+        # 距离差距(3), 飞机欧拉角(3), 飞机航向角, 敌机航向角， 敌机俯仰， 敌机滚动, 锁敌角, 敌机血量， 是否锁敌， 导弹状态
+
+        # self.now_missile_state = False # 未来的状态均不发射（不能加，因为后续计算奖励函数需要）
 
         return States
 

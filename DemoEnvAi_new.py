@@ -8,35 +8,30 @@ class DemoEnv():
     def __init__(self):
         self.done = False
         self.loc_diff = 0
-        self.action_space = gym.spaces.Box(low=np.array([-1.0, -1.0, -1.0, -1.0]), high=np.array([1.0, 1.0, 1.0, 4.0]), # gai 1发导弹0 2发导弹1 3发导弹2
+        self.action_space = gym.spaces.Box(low=np.array([-1.0, -1.0, -1.0, -1.0]), high=np.array([1.0, 1.0, 1.0, 1.0]), 
                                            dtype=np.float64)
         self.Plane_ID_oppo = "ennemy_2"  # Opponent aircrafts name
         self.Plane_ID_ally = "ally_1"  # our aircrafts name
         self.Aircraft_Loc = None
-        self.Ally_target_locked = None
-        self.n_Ally_target_locked = False
+        self.Ally_target_locked = False # 运用动作前是否锁敌
+        self.n_Ally_target_locked = False # 运用动作后是否锁敌
         self.reward = 0
         self.Plane_Irtifa = 0
         self.plane_heading = 0
         self.plane_heading_2 = 0
         self.now_missile_state = False # gai 导弹此时是否发射（本次step是否发射了导弹）
-        self.missile1_state = True # gai 导弹1是否存在
-        self.n_missile1_state = True
-        self.missile2_state = True # gai 导弹2是否存在
-        self.n_missile2_state = True
-        self.missile3_state = True # gai 导弹3是否存在
-        self.n_missile3_state = True
-        self.missile4_state = True # gai 导弹4是否存在
-        self.n_missile4_state = True
+        self.missile1_state = True # gai 运用动作前导弹1是否存在
+        self.n_missile1_state = True # gai 运用动作后导弹1是否存在
         self.missile = df.get_machine_missiles_list(self.Plane_ID_ally) # gai 导弹列表
-        self.missile1_id = self.missile[0]
-        self.oppo_health = 0.6 # gai health_level
+        self.missile1_id = self.missile[0] # 导弹1
+        self.oppo_health = 0.2 # gai 敌机血量
+        self.target_angle = None
 
     def reset(self):  # reset simulation beginning of episode
         self.done = False
-        state_ally = self._get_observation()  # get observations
         self._reset_machine()
         self._reset_missile() # gai 重设导弹
+        state_ally = self._get_observation()  # get observations
         df.set_target_id(self.Plane_ID_ally, self.Plane_ID_oppo)  # set target, for firing missile
 
         return state_ally
@@ -52,21 +47,23 @@ class DemoEnv():
     def _get_reward(self):
         self.reward = 0
         self._get_loc_diff()  # get location difference information for reward
-        self.reward -= (0.0001 * (self.loc_diff))
+        self.reward -= (0.0001 * (self.loc_diff)) # 0.4
 
         # if self.loc_diff < 500:
         #     self.reward += 1000
 
-        if self.plane_heading > 180:
-            deger_1 = (self.plane_heading - 360)
-        else:
-            deger_1 = self.plane_heading
+        # if self.plane_heading > 180: # -2
+        #     deger_1 = (self.plane_heading - 360)
+        # else:
+        #     deger_1 = self.plane_heading
 
-        if self.plane_heading_2 > 180:
-            deger_2 = (self.plane_heading_2 - 360)
-        else:
-            deger_2 = self.plane_heading_2
-        self.reward -= abs(deger_1 - deger_2) / 90
+        # if self.plane_heading_2 > 180:
+        #     deger_2 = (self.plane_heading_2 - 360)
+        # else:
+        #     deger_2 = self.plane_heading_2
+        # self.reward -= abs(deger_1 - deger_2) / 90
+
+        self.reward -= self.target_angle*10
 
         if self.Plane_Irtifa < 2000:
             self.reward -= 4
@@ -74,16 +71,13 @@ class DemoEnv():
         if self.Plane_Irtifa > 7000:
             self.reward -= 4
 
-        # if self.now_missile_state == True: # gai 如果本次step导弹发射
-        #     if self.missile1_state == False and self.Ally_target_locked == False: # 且导弹不存在、不锁敌
-        #         self.reward -= 10 # 则扣10分
-        #     elif self.missile1_state == True and self.Ally_target_locked == True: # 且导弹存在且锁敌
-        #         self.reward += 100 # 则加1000分
-        #     else:
-        #         self.reward -= 5 # 则扣5分
-
-        if self.oppo_health <= 0:
-            self.reward += 200
+        if self.now_missile_state == True: # gai 如果本次step导弹发射
+            if self.missile1_state == False and self.Ally_target_locked == False: # 且导弹不存在、不锁敌
+                self.reward -= 10*(0.0001 * (self.loc_diff)) # 则扣10分
+            elif self.missile1_state == True and self.Ally_target_locked == True: # 且导弹存在且锁敌
+                self.reward += 100 # 则加1000分
+            else:
+                self.reward -= 5*(0.0001 * (self.loc_diff)) # 则扣5分
 
     def _apply_action(self, action_ally):
         df.set_plane_pitch(self.Plane_ID_ally, float(action_ally[0]))
@@ -94,12 +88,14 @@ class DemoEnv():
         df.set_plane_roll(self.Plane_ID_oppo, float(0))
         df.set_plane_yaw(self.Plane_ID_oppo, float(0))
         
-        self.now_missile_state = False
+        # self.now_missile_state = False
 
         if float(action_ally[3] > 0): # 大于0发射导弹
-            # if self.missile1_state == True:
-                df.fire_missile(self.Plane_ID_ally, 0) # gai
-                self.now_missile_state = True # 此时导弹发射
+            # if self.missile1_state == True: # 如果导弹存在（不判断是为了奖励函数服务，也符合动作逻辑）
+            df.fire_missile(self.Plane_ID_ally, 0) # gai
+            self.now_missile_state = True # 此时导弹发射
+        else:
+            self.now_missile_state = False
         
         df.update_scene()
         
@@ -114,25 +110,22 @@ class DemoEnv():
             return 1
         else:
             return 0
-
+        
     def _reset_machine(self):
-        df.reset_machine("ally_1")
+        df.reset_machine("ally_1") # gai 初始化两个飞机
         df.reset_machine("ennemy_2")
-        df.set_health("ennemy_2", 0.6)
-        self.oppo_health = 0.6 # gai
-        x = random.randint(-1000, 1000)
-        y = random.randint(2000, 4000)
-        z = random.randint(1000, 3000)
-        df.reset_machine_matrix(self.Plane_ID_oppo, x, y, z, 0, 0, 0)
-        df.reset_machine_matrix(self.Plane_ID_ally, 0, 20, -80, 0, 0, 0)
-        df.update_scene()
+        df.set_health("ennemy_2", 0.2) # 设置的为健康水平，即血量/100
+        self.oppo_health = 0.2 # gai
+        df.reset_machine_matrix(self.Plane_ID_oppo, 0, 4200, 0, 0, 0, 0)
+        df.reset_machine_matrix(self.Plane_ID_ally, 0, 3500, -4000, 0, 0, 0)
+
         df.set_plane_thrust(self.Plane_ID_ally, 1)
         df.set_plane_thrust(self.Plane_ID_oppo, 0.6)
-        df.set_plane_linear_speed(self.Plane_ID_ally, 250)
+        df.set_plane_linear_speed(self.Plane_ID_ally, 300)
         df.set_plane_linear_speed(self.Plane_ID_oppo, 200)
-        # df.retract_gear(self.Plane_ID_ally)
+        df.retract_gear(self.Plane_ID_ally)
         df.retract_gear(self.Plane_ID_oppo)
-
+    
     def _reset_missile(self): # gai
         self.now_missile_state = False
         df.rearm_machine(self.Plane_ID_ally) # 重新装填导弹
@@ -142,7 +135,7 @@ class DemoEnv():
                     (self.Aircraft_Loc[1] - self.Oppo_Loc[1]) ** 2) + (
                                      (self.Aircraft_Loc[2] - self.Oppo_Loc[2]) ** 2)) ** (1 / 2)
 
-    def _get_observation(self):
+    def _get_observation(self): # 注意get的是n_state
         # Plane States
         plane_state = df.get_plane_state(self.Plane_ID_ally)
         Plane_Pos = [plane_state["position"][0] / NormStates["Plane_position"],
@@ -168,19 +161,22 @@ class DemoEnv():
         self.Plane_Irtifa = plane_state["position"][1]
         self.Aircraft_Loc = plane_state["position"]
         self.Oppo_Loc = Oppo_state["position"]
-        
+
         self.Ally_target_locked = self.n_Ally_target_locked
         self.n_Ally_target_locked = plane_state["target_locked"]
-        if self.n_Ally_target_locked == True: # gai 
+        if self.Ally_target_locked == True: # gai 
             locked = 1
         else:
             locked = -1
 
-        target_angle = plane_state['target_angle'] / 360
+        target_angle = plane_state['target_angle'] / 180
+        self.target_angle = target_angle
+        
         Pos_Diff = [Plane_Pos[0] - Oppo_Pos[0], Plane_Pos[1] - Oppo_Pos[1], Plane_Pos[2] - Oppo_Pos[2]]
         
         self.oppo_health = df.get_health(self.Plane_ID_oppo)
-        oppo_hea = self.oppo_health['health_level'] # gai 敌机初始血量（health）为20，health_level为0.2，导弹伤害为30
+        
+        oppo_hea = self.oppo_health['health_level'] # gai 敌机初始血量为20
 
         # if self.now_missile_state == True:
         #     if_fire = 1
@@ -191,37 +187,17 @@ class DemoEnv():
         
         self.missile1_state = self.n_missile1_state
         self.n_missile1_state = Missile_state["missiles_slots"][0] # 更新导弹1是否存在
-        if self.n_missile1_state == True:
+        if self.missile1_state == True:
             missile1_state = 1
         else:
             missile1_state = -1
 
-        self.missile2_state = self.n_missile2_state
-        self.n_missile2_state = Missile_state["missiles_slots"][1] # 更新导弹1是否存在
-        if self.n_missile2_state == True:
-            missile2_state = 1
-        else:
-            missile2_state = -1
-
-        self.missile3_state = self.n_missile3_state
-        self.n_missile3_state = Missile_state["missiles_slots"][2] # 更新导弹1是否存在
-        if self.n_missile3_state == True:
-            missile3_state = 1
-        else:
-            missile3_state = -1
-
-        self.missile4_state = self.n_missile4_state
-        self.n_missile4_state = Missile_state["missiles_slots"][3] # 更新导弹1是否存在
-        if self.n_missile4_state == True:
-            missile4_state = 1
-        else:
-            missile4_state = -1
-
         States = np.concatenate((Pos_Diff, Plane_Euler, Plane_Heading,
-                                 Oppo_Heading, Oppo_Pitch_Att, Oppo_Roll_Att, target_angle, oppo_hea, locked, 
-                                 missile1_state, missile2_state, missile3_state, missile4_state), axis=None) # gai 感觉加入敌机健康值没用 
+                                 Oppo_Heading, Oppo_Pitch_Att, Oppo_Roll_Att, target_angle, oppo_hea, locked, missile1_state), axis=None) # gai 感觉加入敌机健康值没用
         
-        # self.now_missile_state = False
+        # 距离差距(3), 飞机欧拉角(3), 飞机航向角, 敌机航向角， 敌机俯仰， 敌机滚动, 锁敌角, 敌机血量， 是否锁敌， 导弹状态
+
+        # self.now_missile_state = False # 未来的状态均不发射（不能加，因为后续计算奖励函数需要）
 
         return States
     
@@ -243,12 +219,6 @@ class DemoEnv():
         action[2] = Yaw_Att
         if self.missile1_state == True and self.n_missile1_state == False:
             action[3] = 1
-        if self.missile2_state == True and self.n_missile2_state == False:
-            action[3] = 2
-        if self.missile3_state == True and self.n_missile3_state == False:
-            action[3] = 3
-        if self.missile4_state == True and self.n_missile4_state == False:
-            action[3] = 4
         # print(action)
         return action
 

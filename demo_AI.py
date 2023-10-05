@@ -1,10 +1,11 @@
 import dogfight_client as df
 import time
-from DemoEnvAi import *
+from DemoEnvAi_new import *
 import pickle
 import numpy as np
+import csv
 
-df.connect("10.241.58.126", 50888) # 连接环境
+df.connect("10.243.58.131", 50888) # 连接环境
 time.sleep(2) # 等待连接
 df.disable_log() # 关闭日志？
 render = False
@@ -35,12 +36,13 @@ step = 0
 episode_step = 0
 health = env._get_health()
 invalid_data = 0
-while episode <= 49:
+while episode <= 0:
     while health > 0:
         time.sleep(1/20)
+        df.update_scene()
+        
         state = env._get_observation()
         temp_state_list.append(state) 
-        df.update_scene()
         action = env._get_action()
         temp_action_list.append(action)
         health = env._get_health()
@@ -66,10 +68,14 @@ action_array = np.array(action_list)
 state_array = np.array(state_list)
 data = [state_array, action_array]
 
-filename = 'expert_data_new.pkl'
+filename = 'expert_data_ai.csv'
 
-with open(filename, 'wb') as file: # 打开pickle文件
-    pickle.dump(data, file) # 写入pickle文件
+# with open(filename, 'wb') as file: # 打开pickle文件
+#     pickle.dump(data, file) # 写入pickle文件
+
+with open(filename, 'w', newline='') as file:  # 打开CSV文件，注意要指定newline=''以避免空行
+    writer = csv.writer(file)
+    writer.writerows(data)  # 将数据写入CSV文件
 
 df.set_client_update_mode(False)
 df.disconnect()
