@@ -10,7 +10,7 @@ import torchvision.transforms as T
 import numpy as np
 from ReplayMemory import *
 
-model_name = 'new_pursue_model/7'
+model_name = 'new_pursue_model/8'
 
 def soft_update(target, source, tau):
     for target_param, param in zip(target.parameters(), source.parameters()):

@@ -27,7 +27,7 @@ def save_parameters_to_txt(log_dir, **kwargs):
 
 print(torch.cuda.is_available())
 
-df.connect("10.243.58.131", 50888) #TODO:Change IP and PORT values
+df.connect("10.243.58.131", 12345) #TODO:Change IP and PORT values
 
 start = time.time() #STARTING TIME
 df.disable_log()
@@ -56,7 +56,7 @@ highScore = -math.inf
 successRate = -math.inf
 batchSize = 128
 maxStep = 6000
-validatStep = 15000
+validatStep = 6000
 hiddenLayer1 = 256
 hiddenLayer2 = 512
 stateDim = 14 # gai
