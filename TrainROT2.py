@@ -1,6 +1,6 @@
 #IMPORTS
 from NeuralNetwork import Agent as Agent
-from ROTNeuralNetwork import Agent as ROTAgent
+from ROTNeuralNetwork2 import Agent as ROTAgent
 from read_data import read_data
 from ReplayMemory  import *
 import numpy as np

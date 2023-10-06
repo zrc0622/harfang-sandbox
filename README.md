@@ -33,4 +33,5 @@
 * 状态空间：17维（相对位置（3），agent的欧拉角（3），agent的航向角，敌机的航向角，敌机的俯仰角，敌机的旋转角，目标角度，敌机健康值，是否锁敌，导弹状态（4））
 * 动作空间：4维
 
+tensorboard --logdir C:/Users/zuo/Desktop/code/harfang/mine/harfang-sandbox/new_runs/2023_10_6_16_39,C:/Users/zuo/Desktop/code/harfang/mine/harfang-sandbox/new_runs/2023_10_6_16_46,C:/Users/zuo/Desktop/code/harfang/mine/harfang-sandbox/new_runs/2023_10_6_20_24
   
