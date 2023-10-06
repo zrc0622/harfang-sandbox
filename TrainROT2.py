@@ -62,7 +62,7 @@ hiddenLayer2 = 512
 stateDim = 14 # gai
 actionDim = 4 # gai
 useLayerNorm = True
-bc_weight = 0.7 # rot
+bc_weight = 0.8 # rot
 
 data_dir = 'C:/Users/zuo/Desktop/code/harfang/mine/harfang-sandbox/expert_data_ai.csv'
 expert_states, expert_actions = read_data(data_dir)
@@ -127,6 +127,9 @@ if not Test:
         totalReward = 0
         done = False
         fire = False
+        bc_weight_now = bc_weight - episode/1250
+        if bc_weight_now <= 0.1:
+            bc_weight_now = 0.1
         for step in range(maxStep):
             if not done:
                 action = agent.chooseAction(state)
@@ -140,7 +143,7 @@ if not Test:
                 totalReward += reward
 
                 if agent.buffer.fullEnough(agent.batchSize):
-                    critic_loss, actor_loss, bc_loss, rl_loss, bc_fire_loss = agent.learn()
+                    critic_loss, actor_loss, bc_loss, rl_loss, bc_fire_loss = agent.learn(bc_weight_now)
                     writer.add_scalar('Loss/Critic_Loss', critic_loss, step + episode * maxStep)
                     writer.add_scalar('Loss/Actor_Loss', actor_loss, step + episode * maxStep)
                     writer.add_scalar('Loss/BC_Loss', bc_loss, step + episode * maxStep)

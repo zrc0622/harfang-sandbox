@@ -10,7 +10,7 @@ import torchvision.transforms as T
 import numpy as np
 from ReplayMemory import *
 
-model_name = 'new_pursue_model/8'
+model_name = 'new_pursue_model/9'
 
 def soft_update(target, source, tau):
     for target_param, param in zip(target.parameters(), source.parameters()):
@@ -208,7 +208,7 @@ class Agent(nn.Module):
         print('target indices: ', target_indices)
         return target_indices 
 
-    def learn(self):
+    def learn(self, bc_weight_now):
 
         #SAMPLING
         if isinstance(self.buffer,UniformMemory):
@@ -268,6 +268,7 @@ class Agent(nn.Module):
 
         #ACTOR UPDATE
         if self.actorTrainable is True:
+            self.bc_weight = bc_weight_now
             self.actor.train()
             self.nextAction = self.actor(batchState)
             self.rl_loss = -self.critic.onlyQ1(batchState,self.nextAction).mean() # rl loss
