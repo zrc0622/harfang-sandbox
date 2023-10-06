@@ -27,7 +27,7 @@ def save_parameters_to_txt(log_dir, **kwargs):
 
 print(torch.cuda.is_available())
 
-df.connect("10.243.58.131", 50888) #TODO:Change IP and PORT values
+df.connect("10.243.58.131", 54321) #TODO:Change IP and PORT values
 
 start = time.time() #STARTING TIME
 df.disable_log()
@@ -37,7 +37,7 @@ trainingEpisodes = 6000
 validationEpisodes = 100 # 100
 explorationEpisodes = 200 # 200
 
-Test = True
+Test = False
 if Test:
     render = False
 else:
@@ -56,7 +56,7 @@ highScore = -math.inf
 successRate = -math.inf
 batchSize = 128
 maxStep = 6000
-validatStep = 15000
+validatStep = 6000
 hiddenLayer1 = 256
 hiddenLayer2 = 512
 stateDim = 14 # gai
@@ -94,7 +94,7 @@ if not Test:
 
     writer = SummaryWriter(log_dir)
 arttir = 1
-agent.loadCheckpoints(f"Agent0_") # 使用未添加导弹的结果进行训练
+# agent.loadCheckpoints(f"Agent0_") # 使用未添加导弹的结果进行训练
 # agent.loadCheckpoints(f"Agent33_score-11460.099466018752") # 使用未添加导弹的结果进行训练
 
 if not Test:
@@ -125,13 +125,14 @@ if not Test:
         state = env.reset()
         totalReward = 0
         done = False
+        fire = False
         for step in range(maxStep):
             if not done:
                 action = agent.chooseAction(state)
                 n_state,reward,done, info = env.step(action)
 
                 if step is maxStep - 1:
-                    done = True
+                    break
 
                 agent.store(state, action, n_state, reward, done) # n_state 为下一个状态
                 state = n_state
@@ -142,8 +143,10 @@ if not Test:
                     writer.add_scalar('Loss/Critic_Loss', critic_loss, step + episode * maxStep)
                     writer.add_scalar('Loss/Actor_Loss', actor_loss, step + episode * maxStep)
                     
-                if done:
-                    break
+            elif done:
+                if 500 < env.Plane_Irtifa < 10000: # 改
+                    fire = True
+                break
                
         scores.append(totalReward)
         writer.add_scalar('Training/Episode Reward', totalReward, episode)
@@ -154,7 +157,7 @@ if not Test:
         seconds = int((now - start) % 60)
         minutes = int(((now - start) // 60) % 60)
         hours = int((now - start) // 3600)
-        print('Episode: ', episode+1, ' Completed: %r' % done,\
+        print('Episode: ', episode+1, ' Completed: %r' % done,' Success: %r' % fire, \
             ' FinalReward: %.2f' % totalReward, \
             ' Last100AverageReward: %.2f' % np.mean(scores[-100:]), \
             'RunTime: ', hours, ':',minutes,':', seconds)

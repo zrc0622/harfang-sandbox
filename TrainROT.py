@@ -56,7 +56,7 @@ highScore = -math.inf
 successRate = -math.inf
 batchSize = 128
 maxStep = 6000
-validatStep = 15000
+validatStep = 6000
 hiddenLayer1 = 256
 hiddenLayer2 = 512
 stateDim = 14 # gai
@@ -94,9 +94,9 @@ if not Test:
     env.save_parameters_to_txt(log_dir)
 
     writer = SummaryWriter(log_dir)
-arttir = 1
+arttir = 6
 # agent.loadCheckpoints(f"Agent0_") # 使用未添加导弹的结果进行训练
-# agent.loadCheckpoints(f"Agent33_score-11460.099466018752") # 使用未添加导弹的结果进行训练
+# agent.loadCheckpoints(f"Agent5_score-29702.856667209955") # 使用未添加导弹的结果进行训练
 
 if not Test:
     # RANDOM EXPLORATION

@@ -62,7 +62,7 @@ hiddenLayer2 = 512
 stateDim = 14 # gai
 actionDim = 4 # gai
 useLayerNorm = True
-bc_weight = 0.5 # rot
+bc_weight = 0.7 # rot
 
 data_dir = 'C:/Users/zuo/Desktop/code/harfang/mine/harfang-sandbox/expert_data_ai.csv'
 expert_states, expert_actions = read_data(data_dir)
