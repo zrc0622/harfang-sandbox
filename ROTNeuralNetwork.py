@@ -10,7 +10,7 @@ import torchvision.transforms as T
 import numpy as np
 from ReplayMemory import *
 
-model_name = 'new_pursue_model/7'
+model_name = 'new_pursue_model/16'
 
 def soft_update(target, source, tau):
     for target_param, param in zip(target.parameters(), source.parameters()):
@@ -273,11 +273,11 @@ class Agent(nn.Module):
             self.rl_loss = -self.critic.onlyQ1(batchState,self.nextAction).mean() # rl loss
 
             BCnextAction = self.actor(BCbatchState)
-            self.bc_loss = F.mse_loss(BCnextAction, BCbatchAction) * 10000
+            self.bc_loss = F.mse_loss(BCnextAction, BCbatchAction)* 100000 # bc loss
 
             firebatchAction = BCbatchAction[:, 3]
             firenextAction = BCnextAction[:, 3]
-            self.bc_fire_loss = F.mse_loss(firenextAction, firebatchAction) * 10000
+            self.bc_fire_loss = F.mse_loss(firenextAction, firebatchAction) * 100000
 
             self.actor_loss = self.bc_loss * self.bc_weight + self.rl_loss * (1 - self.bc_weight)
 

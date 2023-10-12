@@ -28,8 +28,14 @@ class HarfangEnv():
         self.missile1_id = self.missile[0] # 导弹1
         self.oppo_health = 0.2 # gai 敌机血量
         self.target_angle = None
+        self.success = False # stepsuccess
 
     def reset(self):  # reset simulation beginning of episode
+        self.Ally_target_locked = False # 运用动作前是否锁敌
+        self.n_Ally_target_locked = False # 运用动作后是否锁敌
+        self.missile1_state = True # gai 运用动作前导弹1是否存在
+        self.n_missile1_state = True # gai 运用动作后导弹1是否存在
+        self.success = False
         self.done = False
         self._reset_machine()
         self._reset_missile() # gai 重设导弹
@@ -44,18 +50,19 @@ class HarfangEnv():
         self._get_reward()  # get reward value
         self._get_termination()  # check termination conditions
 
-        return state_ally, self.reward, self.done, {}
+        return state_ally, self.reward, self.done, {}, self.success
     
     def step_test(self, action_ally):
         self._apply_action(action_ally)  # apply neural networks output
         state_ally = self._get_observation()  # in each step, get observation
         self._get_reward()  # get reward value
         self._get_termination()  # check termination conditions
-
-        return state_ally, self.reward, self.done, {}, self.now_missile_state, self.missile1_state, self.n_missile1_state, self.Ally_target_locked
+        # df.rearm_machine(self.Plane_ID_ally) # 重新装填导弹
+        return state_ally, self.reward, self.done, {}, self.now_missile_state, self.missile1_state, self.n_missile1_state, self.Ally_target_locked, self.reward
     
     def _get_reward(self):
         self.reward = 0
+        self.success = False
         self._get_loc_diff()  # get location difference information for reward
         self.reward -= (0.0001 * (self.loc_diff)) # 0.4
 
@@ -82,12 +89,13 @@ class HarfangEnv():
             self.reward -= 4
 
         if self.now_missile_state == True: # gai 如果本次step导弹发射
-            if self.missile1_state == False and self.Ally_target_locked == False: # 且导弹不存在、不锁敌
-                self.reward -= 10*(0.0001 * (self.loc_diff)) # 则扣10分
+            if self.missile1_state == True and self.Ally_target_locked == False: # 且导弹存在、不锁敌
+                self.reward -= 4
             elif self.missile1_state == True and self.Ally_target_locked == True: # 且导弹存在且锁敌
-                self.reward += 100 # 则加1000分
+                self.reward += 4
+                self.success = True
             else:
-                self.reward -= 5*(0.0001 * (self.loc_diff)) # 则扣5分
+                self.reward -= 1
 
         # if self.oppo_health <= 0:
         #     self.reward += 200
@@ -111,6 +119,7 @@ class HarfangEnv():
             # if self.missile1_state == True: # 如果导弹存在（不判断是为了奖励函数服务，也符合动作逻辑）
             df.fire_missile(self.Plane_ID_ally, 0) # gai
             self.now_missile_state = True # 此时导弹发射
+            # print("fire")
         else:
             self.now_missile_state = False
         
@@ -124,6 +133,8 @@ class HarfangEnv():
             self.done = True
         if self.oppo_health['health_level'] <= 0: # gai 敌机血量低于0则结束
             self.done = True
+        # if self.now_missile_state == True:
+        #     self.done = True
 
     def _reset_machine(self):
         df.reset_machine("ally_1") # gai 初始化两个飞机

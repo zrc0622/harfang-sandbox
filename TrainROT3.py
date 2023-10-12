@@ -1,6 +1,6 @@
 #IMPORTS
 from NeuralNetwork import Agent as Agent
-from ROTNeuralNetwork import Agent as ROTAgent
+from ROTNeuralNetwork2 import Agent as ROTAgent
 from read_data import read_data
 from ReplayMemory  import *
 import numpy as np
@@ -27,7 +27,7 @@ def save_parameters_to_txt(log_dir, **kwargs):
 
 print(torch.cuda.is_available())
 
-df.connect("10.243.58.131", 54321) #TODO:Change IP and PORT values
+df.connect("10.243.58.131", 11111) #TODO:Change IP and PORT values
 
 start = time.time() #STARTING TIME
 df.disable_log()
@@ -62,6 +62,12 @@ hiddenLayer2 = 512
 stateDim = 14 # gai
 actionDim = 4 # gai
 useLayerNorm = True
+bc_weight = 1 # rot
+
+data_dir = 'C:/Users/zuo/Desktop/code/harfang/mine/harfang-sandbox/expert_data_ai.csv'
+expert_states, expert_actions = read_data(data_dir)
+print(expert_states.shape)
+print(expert_actions.shape)
 
 name = "Harfang_GYM"
 
@@ -69,14 +75,9 @@ name = "Harfang_GYM"
 #INITIALIZATION
 env = HarfangEnv()
 
-agent = 'TD3'
+agent = 'rot'
 
 if agent == 'rot':
-    bc_weight = 0.1 # rot
-    data_dir = 'C:/Users/zuo/Desktop/code/harfang/mine/harfang-sandbox/expert_data.csv'
-    expert_states, expert_actions = read_data(data_dir)
-    print(expert_states.shape)
-    print(expert_actions.shape)
     agent = ROTAgent(actorLR, criticLR, stateDim, actionDim, hiddenLayer1, hiddenLayer2, tau, gamma, bufferSize, batchSize, useLayerNorm, name, expert_states, expert_actions, bc_weight)
 elif agent == 'TD3':
     agent = Agent(actorLR, criticLR, stateDim, actionDim, hiddenLayer1, hiddenLayer2, tau, gamma, bufferSize, batchSize, useLayerNorm, name)
@@ -95,7 +96,7 @@ if not Test:
     writer = SummaryWriter(log_dir)
 arttir = 1
 # agent.loadCheckpoints(f"Agent0_") # 使用未添加导弹的结果进行训练
-# agent.loadCheckpoints(f"Agent19_score-4225.242679828079") # 使用未添加导弹的结果进行训练
+# agent.loadCheckpoints(f"Agent7_score-1059.7389121967913") # 使用未添加导弹的结果进行训练
 
 if not Test:
     # RANDOM EXPLORATION
@@ -127,10 +128,13 @@ if not Test:
         totalReward = 0
         done = False
         fire = False
+        bc_weight_now = bc_weight - episode/1000
+        if bc_weight_now <= 0:
+            bc_weight_now = 0
         for step in range(maxStep):
             if not done:
                 action = agent.chooseAction(state)
-                n_state,reward,done, info , stepsuccess= env.step(action)
+                n_state,reward,done, info, stepsuccess = env.step(action)
 
                 if step is maxStep - 1:
                     break
@@ -140,9 +144,12 @@ if not Test:
                 totalReward += reward
 
                 if agent.buffer.fullEnough(agent.batchSize):
-                    critic_loss, actor_loss = agent.learn()
+                    critic_loss, actor_loss, bc_loss, rl_loss, bc_fire_loss = agent.learn(bc_weight_now)
                     writer.add_scalar('Loss/Critic_Loss', critic_loss, step + episode * maxStep)
                     writer.add_scalar('Loss/Actor_Loss', actor_loss, step + episode * maxStep)
+                    writer.add_scalar('Loss/BC_Loss', bc_loss, step + episode * maxStep)
+                    writer.add_scalar('Loss/RL_Loss', rl_loss, step + episode * maxStep)     
+                    writer.add_scalar('Loss/BC_Fire_Loss', bc_fire_loss, step + episode * maxStep)
                     
             elif done:
                 if 500 < env.Plane_Irtifa < 10000: # 改
@@ -154,10 +161,11 @@ if not Test:
         scores.append(totalReward)
         writer.add_scalar('Training/Episode Reward', totalReward, episode)
         writer.add_scalar('Training/Last 100 Average Reward', np.mean(scores[-100:]), episode)
-        
+
         if (((episode + 1) % checkpointRate) == 0):
             writer.add_scalar('Training/Train success rate', trainsuccess/checkpointRate, episode)
             trainsuccess = 0
+        
         
         now = time.time()
         seconds = int((now - start) % 60)
@@ -222,6 +230,7 @@ if not Test:
             writer.add_scalar('Validation/Success Rate', success/validationEpisodes, episode)
 else:
     success = 0
+    validationEpisodes = 1000
     for e in range(validationEpisodes):
         state = env.reset()
         totalReward = 0
@@ -231,6 +240,7 @@ else:
             if not done:
                 action = agent.chooseActionNoNoise(state)
                 n_state,reward,done, info, iffire, beforeaction, afteraction, locked, reward   = env.step_test(action)
+                
                 if action[3]>0:
                     print(step)
                     print('reward:', reward)
@@ -238,14 +248,20 @@ else:
                     print('next state: ', n_state)
                     print('before missile: ' , beforeaction, '  if fire: ', iffire, '   after missile: ', afteraction, '    locked', locked)
                     print("+"*15)
+                    if locked == True:
+                        done = True
+                    else:
+                        break
                 if step is validatStep - 1:
-                    done = True
+                    print(totalReward)
+                    break
 
                 state = n_state
                 totalReward += reward
-            if done:
-                if env.loc_diff < 200:
+            elif done:
+                if 500 < env.Plane_Irtifa < 10000: # 改
                     success += 1
+                    print(success)
                 break
 
         # print('Test  Reward:', totalReward)

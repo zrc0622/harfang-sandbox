@@ -6,7 +6,7 @@ import torch
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 Transition = namedtuple('Transition',
-                        ('state', 'action', 'next_state', 'reward', 'done'))
+                        ('state', 'action', 'next_state', 'reward', 'done', 'stepsuccess'))
 
 class UniformMemory(object):
 
@@ -14,16 +14,29 @@ class UniformMemory(object):
         self.capacity = capacity
         self.memory = []
         self.position = 0
+        self.priortities = np.zeros(capacity)
+        self.upsample = True
 
     def store(self, *args):
+        priority = 1.0 if args[-1] else 0.1
+
         if len(self.memory) < self.capacity:
             self.memory.append(Transition(*args))
         else:
             self.memory[self.position] = Transition(*args)
+        
+        self.priortities[self.position] = priority
         self.position = (self.position + 1) % self.capacity
 
     def sample(self, batchSize):
-        batch = random.sample(self.memory, batchSize)
+        if self.upsample:
+            priorities = self.priortities[:len(self.memory)]
+            probabilities = priorities / np.sum(priorities)
+            indices = np.random.choice(len(self.memory), batchSize, p=probabilities)
+            batch = [self.memory[i] for i in indices]
+        else:
+            batch = random.sample(self.memory, batchSize)
+        
         batch = Transition(*zip(*batch))
         return batch.state, batch.action, batch.next_state, batch.reward, batch.done
     

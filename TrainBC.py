@@ -1,6 +1,6 @@
 #IMPORTS
 from NeuralNetwork import Agent as Agent
-from ROTNeuralNetwork import Agent as ROTAgent
+from BCNeuralNetwork import Agent as ROTAgent
 from read_data import read_data
 from ReplayMemory  import *
 import numpy as np
@@ -27,19 +27,19 @@ def save_parameters_to_txt(log_dir, **kwargs):
 
 print(torch.cuda.is_available())
 
-df.connect("10.243.58.131", 54321) #TODO:Change IP and PORT values
+df.connect("10.243.58.131", 50888) #TODO:Change IP and PORT values
 
 start = time.time() #STARTING TIME
 df.disable_log()
 
 # PARAMETERS
 trainingEpisodes = 6000
-validationEpisodes = 50 # 100
+validationEpisodes = 4 # 100
 explorationEpisodes = 200 # 200
 
-Test = False
+Test = True
 if Test:
-    render = False
+    render = True
 else:
     render = True
     
@@ -48,20 +48,26 @@ df.set_client_update_mode(True)
 
 bufferSize = (10**6)
 gamma = 0.99
-criticLR = 1e-4
-actorLR = 1e-4
+criticLR = 1e-3
+actorLR = 1e-3
 tau = 0.005
 checkpointRate = 50 # 100
 highScore = -math.inf
 successRate = -math.inf
 batchSize = 128
-maxStep = 5000
-validatStep = 5000
+maxStep = 6000
+validatStep = 6000
 hiddenLayer1 = 256
 hiddenLayer2 = 512
 stateDim = 14 # gai
 actionDim = 4 # gai
 useLayerNorm = True
+bc_weight = 1 # rot
+
+data_dir = 'C:/Users/zuo/Desktop/code/harfang/mine/harfang-sandbox/expert_data_ai.csv'
+expert_states, expert_actions = read_data(data_dir)
+print(expert_states.shape)
+print(expert_actions.shape)
 
 name = "Harfang_GYM"
 
@@ -69,14 +75,9 @@ name = "Harfang_GYM"
 #INITIALIZATION
 env = HarfangEnv()
 
-agent = 'TD3'
+agent = 'rot'
 
 if agent == 'rot':
-    bc_weight = 0.1 # rot
-    data_dir = 'C:/Users/zuo/Desktop/code/harfang/mine/harfang-sandbox/expert_data.csv'
-    expert_states, expert_actions = read_data(data_dir)
-    print(expert_states.shape)
-    print(expert_actions.shape)
     agent = ROTAgent(actorLR, criticLR, stateDim, actionDim, hiddenLayer1, hiddenLayer2, tau, gamma, bufferSize, batchSize, useLayerNorm, name, expert_states, expert_actions, bc_weight)
 elif agent == 'TD3':
     agent = Agent(actorLR, criticLR, stateDim, actionDim, hiddenLayer1, hiddenLayer2, tau, gamma, bufferSize, batchSize, useLayerNorm, name)
@@ -95,7 +96,7 @@ if not Test:
     writer = SummaryWriter(log_dir)
 arttir = 1
 # agent.loadCheckpoints(f"Agent0_") # 使用未添加导弹的结果进行训练
-# agent.loadCheckpoints(f"Agent19_score-4225.242679828079") # 使用未添加导弹的结果进行训练
+agent.loadCheckpoints(f"Agent110_successRate1.0") # 使用未添加导弹的结果进行训练
 
 if not Test:
     # RANDOM EXPLORATION
@@ -107,11 +108,11 @@ if not Test:
             if not done:
                 action = env.action_space.sample()                
 
-                n_state,reward,done, info, stepsuccess = env.step(action)
+                n_state,reward,done, info = env.step(action)
                 # print(n_state)
                 if step is maxStep-1:
                     done = True
-                agent.store(state,action,n_state,reward,done,stepsuccess)
+                agent.store(state,action,n_state,reward,done)
                 state=n_state
 
                 if done:
@@ -127,22 +128,28 @@ if not Test:
         totalReward = 0
         done = False
         fire = False
+        bc_weight_now = bc_weight - episode/1500
+        if bc_weight_now <= 0:
+            bc_weight_now = 0
         for step in range(maxStep):
             if not done:
                 action = agent.chooseAction(state)
-                n_state,reward,done, info , stepsuccess= env.step(action)
+                n_state,reward,done, info = env.step(action)
 
                 if step is maxStep - 1:
                     break
 
-                agent.store(state, action, n_state, reward, done, stepsuccess) # n_state 为下一个状态
+                agent.store(state, action, n_state, reward, done) # n_state 为下一个状态
                 state = n_state
                 totalReward += reward
 
                 if agent.buffer.fullEnough(agent.batchSize):
-                    critic_loss, actor_loss = agent.learn()
+                    critic_loss, actor_loss, bc_loss, rl_loss, bc_fire_loss = agent.learn(bc_weight_now)
                     writer.add_scalar('Loss/Critic_Loss', critic_loss, step + episode * maxStep)
                     writer.add_scalar('Loss/Actor_Loss', actor_loss, step + episode * maxStep)
+                    writer.add_scalar('Loss/BC_Loss', bc_loss, step + episode * maxStep)
+                    writer.add_scalar('Loss/RL_Loss', rl_loss, step + episode * maxStep)     
+                    writer.add_scalar('Loss/BC_Fire_Loss', bc_fire_loss, step + episode * maxStep)
                     
             elif done:
                 if 500 < env.Plane_Irtifa < 10000: # 改
@@ -231,6 +238,7 @@ else:
             if not done:
                 action = agent.chooseActionNoNoise(state)
                 n_state,reward,done, info, iffire, beforeaction, afteraction, locked, reward   = env.step_test(action)
+                
                 if action[3]>0:
                     print(step)
                     print('reward:', reward)
@@ -239,13 +247,15 @@ else:
                     print('before missile: ' , beforeaction, '  if fire: ', iffire, '   after missile: ', afteraction, '    locked', locked)
                     print("+"*15)
                 if step is validatStep - 1:
-                    done = True
+                    print(totalReward)
+                    break
 
                 state = n_state
                 totalReward += reward
-            if done:
-                if env.loc_diff < 200:
+            elif done:
+                if 500 < env.Plane_Irtifa < 10000: # 改
                     success += 1
+                    print(success)
                 break
 
         # print('Test  Reward:', totalReward)
