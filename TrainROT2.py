@@ -140,6 +140,8 @@ if not Test:
                     break
 
                 agent.store(state, action, n_state, reward, done, stepsuccess) # n_state 为下一个状态
+                if stepsuccess:
+                    print('success')
                 state = n_state
                 totalReward += reward
 
@@ -190,7 +192,7 @@ if not Test:
                 for step in range(validatStep):
                     if not done:
                         action = agent.chooseActionNoNoise(state)
-                        n_state, reward, done, info = env.step(action)
+                        n_state, reward, done, info, stepsuccess = env.step(action)
                         state = n_state
                         totalReward += reward
 

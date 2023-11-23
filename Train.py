@@ -17,6 +17,7 @@ import os
 from pathlib import Path
 
 from plot import draw_dif, draw_pos
+import csv
 
 def save_parameters_to_txt(log_dir, **kwargs):
     # os.makedirs(log_dir)
@@ -37,9 +38,9 @@ trainingEpisodes = 6000
 validationEpisodes = 50 # 100
 explorationEpisodes = 200 # 200
 
-Test = False
+Test = True
 if Test:
-    render = False
+    render = True
 else:
     render = True
     
@@ -95,7 +96,7 @@ if not Test:
     writer = SummaryWriter(log_dir)
 arttir = 1
 # agent.loadCheckpoints(f"Agent0_") # 使用未添加导弹的结果进行训练
-# agent.loadCheckpoints(f"Agent19_score-4225.242679828079") # 使用未添加导弹的结果进行训练
+agent.loadCheckpoints(f"Agent24_score-3846.1288666459645") # 使用未添加导弹的结果进行训练
 
 if not Test:
     # RANDOM EXPLORATION
@@ -136,6 +137,8 @@ if not Test:
                     break
 
                 agent.store(state, action, n_state, reward, done, stepsuccess) # n_state 为下一个状态
+                if stepsuccess:
+                    print('success')
                 state = n_state
                 totalReward += reward
 
@@ -182,7 +185,7 @@ if not Test:
                 for step in range(validatStep):
                     if not done:
                         action = agent.chooseActionNoNoise(state)
-                        n_state, reward, done, info = env.step(action)
+                        n_state, reward, done, info, stepsuccess = env.step(action)
                         state = n_state
                         totalReward += reward
 
@@ -226,27 +229,49 @@ else:
         state = env.reset()
         totalReward = 0
         done = False
+        dif1=[] 
+        fire=[]
+        lock=[]
         print('before state: ', state)
         for step in range(validatStep):
             if not done:
                 action = agent.chooseActionNoNoise(state)
                 n_state,reward,done, info, iffire, beforeaction, afteraction, locked, reward   = env.step_test(action)
-                if action[3]>0:
-                    print(step)
-                    print('reward:', reward)
-                    print('action: ', action)
-                    print('next state: ', n_state)
-                    print('before missile: ' , beforeaction, '  if fire: ', iffire, '   after missile: ', afteraction, '    locked', locked)
-                    print("+"*15)
+                # if action[3]>0:
+                #     print(step)
+                #     print('reward:', reward)
+                #     print('action: ', action)
+                #     print('next state: ', n_state)
+                #     print('before missile: ' , beforeaction, '  if fire: ', iffire, '   after missile: ', afteraction, '    locked', locked)
+                #     print("+"*15)
                 if step is validatStep - 1:
                     done = True
-
+               
+                dif1.append(env.loc_diff)
+                if iffire:
+                    fire.append(step)
+                if locked:
+                    lock.append(step)
+            
                 state = n_state
                 totalReward += reward
             if done:
                 if env.loc_diff < 200:
                     success += 1
                 break
+        with open('./dif/tdif{}_{}.csv'.format(totalReward,e), 'w', newline='') as file:
+            writer1 = csv.writer(file)
+            writer1.writerow(['dif'])  # 写入列标题
+            writer1.writerows(map(lambda x: [x], dif1))  # 将列表的每个元素写入CSV行
+        with open('./dif/tfire{}_{}.csv'.format(totalReward,e), 'w', newline='') as file:
+            writer1 = csv.writer(file)
+            writer1.writerow(['step'])  # 写入列标题
+            writer1.writerows(map(lambda x: [x], fire))  # 将列表的每个元素写入CSV行
+        with open('./dif/tlock{}_{}.csv'.format(totalReward,e), 'w', newline='') as file:
+            writer1 = csv.writer(file)
+            writer1.writerow(['step'])  # 写入列标题
+            writer1.writerows(map(lambda x: [x], lock))  # 将列表的每个元素写入CSV行
 
         # print('Test  Reward:', totalReward)
     print('Success Ratio:', success / validationEpisodes)
+

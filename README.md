@@ -1,37 +1,22 @@
 
-# Reinforcement Learning
+# 面向无人机近距离空战问题的高模仿性强化学习控制方法
 
-* Install Latest Version of Sandbox
-  
-  * Install latest version of Sandbox. Download from "[Releases](https://github.com/harfang3d/dogfight-sandbox-hg2/releases/tag/v1.3.0)" and you can run directly.
+> 本算法在[Harfang3D Dog-Fight Sandbox 强化学习环境](https://github.com/harfang3d/dogfight-sandbox-hg2)中表现优秀，整合后的代码放在[paper分支](https://github.com/zrc0622/harfang-sandbox/tree/paper)下，本分支为老版本
 
-* Install Packages
-  * Use pip to install the requirements.
-
+## 依赖
+1. 安装`Harfang3D sandbox`的[Release版本](https://github.com/harfang3d/dogfight-sandbox-hg2/releases/tag/v1.3.0)或[源代码](https://github.com/harfang3d/dogfight-sandbox-hg2)，推荐安装源代码版本，这样可以自行更改环境的端口
+2. 安装本代码所需依赖，可以在[官网requirements.txt](https://github.com/harfang3d/dogfight-sandbox-hg2/blob/main/Agent/requirements.txt)的基础上补充安装，也可以通过以下命令直接安装
     ~~~bash
     pip install -r requirements.txt
     ~~~
-* Change IP and PORT
-  * Change IP and PORT values from Train.py file
-* Run
-  * Run Train.py file
 
+## 生成专家数据
 
-# Get Expert Date
-
-## Rule-based
-* run demo.py file which will then generate a pkl file named "expert_data"
+### 基于规则
+> 飞行规则自定
+* 运行`demo.py`将会生成专家数据的csv文件
 * video</br>[![rule-based expert demo](https://github.com/zrc0622/harfang-sandbox/blob/master/pictures/1(1).jpg)](https://www.youtube.com/watch?v=i6DAneyneh8 "rule-based expert demo") 
-## AI-based
-* run demo_AI.py file which will then generate a pkl file named "expert_data_new"
-* video</br>[![AI-based expert demo](https://github.com/zrc0622/harfang-sandbox/blob/master/pictures/2(1).jpg)](https://www.youtube.com/watch?v=uQKoI0rQC2k "AI-based expert demo")
-# Data Description
-## expert_data_new.pkl
-* 基于AI的agent生成的“追逐敌机并发射导弹将敌机击落”的轨迹，可用于imitation learning
-* 轨迹数量：50
-* 轨迹长度：107859
-* 状态空间：17维（相对位置（3），agent的欧拉角（3），agent的航向角，敌机的航向角，敌机的俯仰角，敌机的旋转角，目标角度，敌机健康值，是否锁敌，导弹状态（4））
-* 动作空间：4维
 
-tensorboard --logdir C:/Users/zuo/Desktop/code/harfang/mine/harfang-sandbox/new_runs/2023_10_6_16_39,C:/Users/zuo/Desktop/code/harfang/mine/harfang-sandbox/new_runs/2023_10_6_16_46,C:/Users/zuo/Desktop/code/harfang/mine/harfang-sandbox/new_runs/2023_10_6_20_24
-  
+### 基于AI
+* 运行`demo_AI.py`将会生成专家数据的csv文件
+* video</br>[![AI-based expert demo](https://github.com/zrc0622/harfang-sandbox/blob/master/pictures/2(1).jpg)](https://www.youtube.com/watch?v=uQKoI0rQC2k "AI-based expert demo")
