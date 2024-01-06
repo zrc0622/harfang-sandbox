@@ -82,7 +82,7 @@ def main(config):
     useLayerNorm = True
 
     bc_actor_dir = 'model\\BC\\bc_1'
-    bc_actor_name = 'Agent20_successRate0.64'
+    bc_actor_name = 'Agent20_successRate0.32'
 
     data_dir = './expert_data/expert_data_ai2.csv'
     data_folder_dir = './expert_data'
@@ -719,9 +719,9 @@ if __name__=='__main__':
 # 700 0
 
 # python train_all.py --agent BC --port 11111 --upsample  --model_name bc_1 
-# Agent2_successRate0.64
+# Agent20_successRate0.32
 # 16%
 # 15 15
-# Agent20_successRate0.32
+# Agent2_successRate0.32
 # 12%
 # 58 58
