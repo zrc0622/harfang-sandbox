@@ -1,4 +1,4 @@
-# Novel Imitative Reinforcement Learning in Harfang3D
+# An Imitative Reinforcement Learning Approach for Dogfight
 ## Installation
 1. 安装`Harfang3D sandbox`的[Release版本](https://github.com/harfang3d/dogfight-sandbox-hg2/releases/tag/v1.3.0)或[源代码](https://github.com/harfang3d/dogfight-sandbox-hg2)，推荐安装源代码版本，这样可以自行更改环境的端口
 2. 安装本代码所需依赖
@@ -42,3 +42,5 @@
     # 以下为一个例子
     python train_all.py --agent ROT --port 12345 --type soft --upsample --model_name srot --test --test_mode 1
     ```
+## 模型
+行为克隆、TD3、本文提出的方法训练的模型存储在models文件夹下
