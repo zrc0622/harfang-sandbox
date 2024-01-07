@@ -48,4 +48,9 @@
 ## 本文训练得到的策略
 
 单一炮弹场景下的策略
-![image]()
+
+![image](https://github.com/zrc0622/harfang-sandbox/blob/paper/videos/single.gif)
+
+无限炮弹场景下的策略
+
+![image](https://github.com/zrc0622/harfang-sandbox/blob/paper/videos/multi.gif)
