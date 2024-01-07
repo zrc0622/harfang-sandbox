@@ -45,11 +45,11 @@
 ## 模型
 行为克隆、TD3、本文提出的方法训练的模型存储在models文件夹下
 
-## 本文训练得到的策略
+## 本文方法训练得到的策略
 
 单一炮弹场景下的策略
 
-![image](https://github.com/zrc0622/harfang-sandbox/blob/paper/videos/single.gif)
+![image](videos/single.gif)
 
 无限炮弹场景下的策略
 
