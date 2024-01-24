@@ -444,7 +444,7 @@ def main(config):
                         state = n_state
                         totalReward += reward
 
-                        if step == 3000 - 1:
+                        if step == validationStep - 1:
                             print('total fire is:', env.total_fire,'total success is', env.total_success)
                             break
 
