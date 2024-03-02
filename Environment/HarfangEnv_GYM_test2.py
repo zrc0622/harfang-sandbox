@@ -69,7 +69,7 @@ class HarfangEnv_test2():
         self._get_termination()  # check termination conditions
 
         # df.rearm_machine(self.Plane_ID_ally) # 重新装填导弹
-        return state_ally, self.reward, self.done, {}, self.now_missile_state, self.missile1_state, self.n_missile1_state, self.Ally_target_locked, self.reward
+        return state_ally, self.reward, self.done, {}, self.now_missile_state, self.missile1_state, self.n_missile1_state, self.Ally_target_locked, self.reward, self.success
     
     def _get_reward(self):
         self.reward = 0

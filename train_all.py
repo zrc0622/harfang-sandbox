@@ -39,7 +39,7 @@ def validate(validationEpisodes, env:HarfangEnv, validationStep, agent:ROTAgent,
         for step in range(validationStep):
             if not done:
                 action = agent.chooseActionNoNoise(state)
-                n_state,reward,done, info, iffire, beforeaction, afteraction, locked, reward = env.step_test(action)
+                n_state,reward,done, info, iffire, beforeaction, afteraction, locked, reward, step_success = env.step_test(action)
                 state = n_state
                 totalReward += reward
                 
@@ -200,7 +200,7 @@ def main(config):
 
         start_time = datetime.datetime.now()
         dir = Path.cwd() # 获取工作区路径
-        log_dir = str(dir) + "\\" + "logs\\" + agent_name + "\\" + model_name + "\\" + "log\\" + str(start_time.year)+'_'+str(start_time.month)+'_'+str(start_time.day)+'_'+str(start_time.hour)+'_'+str(start_time.minute) # tensorboard文件夹路径
+        log_dir = str(dir) + "\\" + "logs2\\" + agent_name + "\\" + model_name + "\\" + "log\\" + str(start_time.year)+'_'+str(start_time.month)+'_'+str(start_time.day)+'_'+str(start_time.hour)+'_'+str(start_time.minute) # tensorboard文件夹路径
         plot_dir = log_dir + "\\" + "plot"
         os.makedirs(log_dir, exist_ok=True)
         os.makedirs(plot_dir, exist_ok=True)
@@ -213,7 +213,7 @@ def main(config):
     
     arttir = 1
     if load_model or Test:
-        agent.loadCheckpoints(f"Agent18_score-416.12945699688606", model_dir)
+        agent.loadCheckpoints(f"Agent24_0_-4707", model_dir)
 
     if not Test:
         if agent_name == 'BC':
@@ -312,7 +312,8 @@ def main(config):
                 writer.add_scalar('Training/Episode Reward', totalReward, episode)
                 writer.add_scalar('Training/Last 100 Episode Average Reward', np.mean(scores[-100:]), episode)
                 writer.add_scalar('Training/Average Step Reward', totalReward/step, episode)
-                writer.add_scalar('Training/Last 50 Episode Train success rate', np.mean(trainsuccess[-50:]), episode)               
+                writer.add_scalar('Training/Last 50 Episode Train success rate', np.mean(trainsuccess[-50:]), episode)
+                writer.add_scalar('Others/BC_weight', bc_weight_now, episode)               
                 
                 now = time.time()
                 seconds = int((now - start) % 60)
@@ -407,15 +408,17 @@ def main(config):
             print('test mode 1')
             env = HarfangEnv_test1()
             success = 0
+            fire_success = 0
             validationEpisodes = 50
             for e in tqdm(range(validationEpisodes)):
                 state = env.reset()
+                point = 0
                 totalReward = 0
                 done = False
                 for step in range(validationStep):
                     if not done:
                         action = agent.chooseActionNoNoise(state)
-                        n_state, reward, done, info, iffire, beforeaction, afteraction, locked, reward   = env.step_test(action)
+                        n_state, reward, done, info, iffire, beforeaction, afteraction, locked, reward, step_success   = env.step_test(action)
                         state = n_state
                         totalReward += reward
 
@@ -425,7 +428,14 @@ def main(config):
                         if done:
                             if env.episode_success:
                                 success += 1
-            print('Success Ratio:', success / validationEpisodes)
+                            if point == 1:
+                                fire_success += 1
+                        
+                        if step_success == 1:
+                            point = 1
+                           
+            print('Fall Success Ratio:', success / validationEpisodes)
+            print('Fire Success Ratio', fire_success / validationEpisodes)
 
         elif test_mode == 2:
             print('test mode 2')
@@ -440,7 +450,7 @@ def main(config):
                 for step in range(validationStep):
                     if not done:
                         action = agent.chooseActionNoNoise(state)
-                        n_state,reward,done, info, iffire, beforeaction, afteraction, locked, reward  = env.step_test(action, step)
+                        n_state,reward,done, info, iffire, beforeaction, afteraction, locked, reward, step_success = env.step_test(action, step)
                         state = n_state
                         totalReward += reward
 
@@ -458,15 +468,17 @@ def main(config):
             print('test mode 3')
             env = HarfangEnv()
             success = 0
+            fire_success = 0
             validationEpisodes = 50
             for e in tqdm(range(validationEpisodes)):
                 state = env.reset()
                 totalReward = 0
+                point = 0
                 done = False
                 for step in range(validationStep):
                     if not done:
                         action = agent.chooseActionNoNoise(state)
-                        n_state, reward, done, info, iffire, beforeaction, afteraction, locked, reward   = env.step_test(action)
+                        n_state, reward, done, info, iffire, beforeaction, afteraction, locked, reward, step_success   = env.step_test(action)
                         state = n_state
                         totalReward += reward
 
@@ -476,7 +488,15 @@ def main(config):
                         if done:
                             if env.episode_success:
                                 success += 1
-            print('Success Ratio:', success / validationEpisodes)
+                            if point == 1:
+                                fire_success += 1
+                        
+                        if step_success == 1:
+                            point = 1
+                           
+            print('Fall Success Ratio:', success / validationEpisodes)
+            print('Fire Success Ratio', fire_success / validationEpisodes)
+            
     
 if __name__=='__main__':
     parser = argparse.ArgumentParser()

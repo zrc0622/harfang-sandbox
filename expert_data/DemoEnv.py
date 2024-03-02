@@ -2,47 +2,36 @@ import numpy as np
 import dogfight_client as df
 from Constants import *
 import gym
-import os
-import inspect
-import random
 
-class HarfangEnv_test1():
+
+class DemoEnv():
     def __init__(self):
         self.done = False
         self.loc_diff = 0
-        self.action_space = gym.spaces.Box(low=np.array([-1.0, -1.0, -1.0, -1.0]), high=np.array([1.0, 1.0, 1.0, 1.0]), 
+        self.action_space = gym.spaces.Box(low=np.array([-1.0, -1.0, -1.0, -1.0]), high=np.array([1.0, 1.0, 1.0, 4.0]), # gai 1发导弹0 2发导弹1 3发导弹2
                                            dtype=np.float64)
         self.Plane_ID_oppo = "ennemy_2"  # Opponent aircrafts name
         self.Plane_ID_ally = "ally_1"  # our aircrafts name
         self.Aircraft_Loc = None
-        self.Ally_target_locked = False # 运用动作前是否锁敌
-        self.n_Ally_target_locked = False # 运用动作后是否锁敌
+        self.Ally_target_locked = None
+        self.n_Ally_target_locked = False
         self.reward = 0
         self.Plane_Irtifa = 0
         self.plane_heading = 0
         self.plane_heading_2 = 0
-        self.now_missile_state = False # 导弹此时是否发射（本次step是否发射了导弹）
-        self.missile1_state = True # 运用动作前导弹1是否存在
-        self.n_missile1_state = True # 运用动作后导弹1是否存在
-        self.missile = df.get_machine_missiles_list(self.Plane_ID_ally) # 导弹列表
-        self.missile1_id = self.missile[0] # 导弹1
-        self.oppo_health = 0.2 # 敌机血量
-        self.target_angle = None
-        self.success = 0 # stepsuccess
-        self.episode_success = False
+        self.now_missile_state = False # gai 导弹此时是否发射（本次step是否发射了导弹）
+        self.missile1_state = True # gai 导弹1是否存在
+        self.n_missile1_state = True
+        self.missile = df.get_machine_missiles_list(self.Plane_ID_ally) # gai 导弹列表
+        self.missile1_id = self.missile[0]
+        self.oppo_health = 1 # gai health_level
 
     def reset(self):  # reset simulation beginning of episode
-        self.Ally_target_locked = False # 运用动作前是否锁敌
-        self.n_Ally_target_locked = False # 运用动作后是否锁敌
-        self.missile1_state = True # 运用动作前导弹1是否存在
-        self.n_missile1_state = True # 运用动作后导弹1是否存在
-        self.success = 0
         self.done = False
-        self._reset_machine()
-        self._reset_missile() # 重设导弹
         state_ally = self._get_observation()  # get observations
+        self._reset_machine()
+        self._reset_missile() # gai 重设导弹
         df.set_target_id(self.Plane_ID_ally, self.Plane_ID_oppo)  # set target, for firing missile
-        self.episode_success = False
 
         return state_ally
 
@@ -52,37 +41,26 @@ class HarfangEnv_test1():
         self._get_reward()  # get reward value
         self._get_termination()  # check termination conditions
 
-        return state_ally, self.reward, self.done, {}, self.success
-    
-    def step_test(self, action_ally):
-        self._apply_action(action_ally)  # apply neural networks output
-        state_ally = self._get_observation()  # in each step, get observation
-        self._get_reward()  # get reward value
-        self._get_termination()  # check termination conditions
-        # df.rearm_machine(self.Plane_ID_ally) # 重新装填导弹
-        return state_ally, self.reward, self.done, {}, self.now_missile_state, self.missile1_state, self.n_missile1_state, self.Ally_target_locked, self.reward, self.success
-    
+        return state_ally, self.reward, self.done, {}
+
     def _get_reward(self):
         self.reward = 0
-        self.success = 0
         self._get_loc_diff()  # get location difference information for reward
-        self.reward -= (0.0001 * (self.loc_diff)) # 0.4
+        self.reward -= (0.0001 * (self.loc_diff))
 
         # if self.loc_diff < 500:
         #     self.reward += 1000
 
-        # if self.plane_heading > 180: # -2
-        #     deger_1 = (self.plane_heading - 360)
-        # else:
-        #     deger_1 = self.plane_heading
+        if self.plane_heading > 180:
+            deger_1 = (self.plane_heading - 360)
+        else:
+            deger_1 = self.plane_heading
 
-        # if self.plane_heading_2 > 180:
-        #     deger_2 = (self.plane_heading_2 - 360)
-        # else:
-        #     deger_2 = self.plane_heading_2
-        # self.reward -= abs(deger_1 - deger_2) / 90
-
-        self.reward -= self.target_angle*10
+        if self.plane_heading_2 > 180:
+            deger_2 = (self.plane_heading_2 - 360)
+        else:
+            deger_2 = self.plane_heading_2
+        self.reward -= abs(deger_1 - deger_2) / 90
 
         if self.Plane_Irtifa < 2000:
             self.reward -= 4
@@ -90,22 +68,16 @@ class HarfangEnv_test1():
         if self.Plane_Irtifa > 7000:
             self.reward -= 4
 
-        if self.now_missile_state == True: # 如果本次step导弹发射
-            if self.missile1_state == True and self.Ally_target_locked == False: # 且导弹存在、不锁敌
-                self.reward -= 4
-                self.success = -1
-            elif self.missile1_state == True and self.Ally_target_locked == True: # 且导弹存在且锁敌
-                self.reward += 4
-                self.success = 1
-            else:
-                self.reward -= 1
+        # if self.now_missile_state == True: # gai 如果本次step导弹发射
+        #     if self.missile1_state == False and self.Ally_target_locked == False: # 且导弹不存在、不锁敌
+        #         self.reward -= 10 # 则扣10分
+        #     elif self.missile1_state == True and self.Ally_target_locked == True: # 且导弹存在且锁敌
+        #         self.reward += 100 # 则加1000分
+        #     else:
+        #         self.reward -= 5 # 则扣5分
 
-        # if self.oppo_health <= 0:
-        #     self.reward += 200
-        # 
-        # 可以添加锁敌保持奖励
-        # 可以删去航向角奖励（航向角是否有用）
-        # 确认锁敌角的含义
+        if self.oppo_health <= 0:
+            self.reward += 200
 
     def _apply_action(self, action_ally):
         df.set_plane_pitch(self.Plane_ID_ally, float(action_ally[0]))
@@ -116,46 +88,40 @@ class HarfangEnv_test1():
         df.set_plane_roll(self.Plane_ID_oppo, float(0))
         df.set_plane_yaw(self.Plane_ID_oppo, float(0))
         
-        # self.now_missile_state = False
+        self.now_missile_state = False
 
         if float(action_ally[3] > 0): # 大于0发射导弹
-            # if self.missile1_state == True: # 如果导弹存在（不判断是为了奖励函数服务，也符合动作逻辑）
-            df.fire_missile(self.Plane_ID_ally, 0) #
-            self.now_missile_state = True # 此时导弹发射
-            # print("fire")
-        else:
-            self.now_missile_state = False
+            # if self.missile1_state == True:
+                df.fire_missile(self.Plane_ID_ally, 0) # gai
+                self.now_missile_state = True # 此时导弹发射
         
         df.update_scene()
         
 
     def _get_termination(self):
-        # if self.loc_diff < 200:
-        #     self.done = True
+        if self.loc_diff < 300:
+            self.done = True
         if self.Plane_Irtifa < 500 or self.Plane_Irtifa > 10000:
             self.done = True
-        if self.oppo_health['health_level'] <= 0: # 敌机血量低于0则结束
+        if self.oppo_health['health_level'] <= 0: # gai
             self.done = True
-            self.episode_success = True
-        # if self.now_missile_state == True:
-        #     self.done = True
 
     def _reset_machine(self):
-        df.reset_machine("ally_1") # 初始化两个飞机
+        df.reset_machine("ally_1")
         df.reset_machine("ennemy_2")
-        df.set_health("ennemy_2", 0.2) # 设置的为健康水平，即血量/100
-        self.oppo_health = 0.2 #
-        df.reset_machine_matrix(self.Plane_ID_oppo, 0, 4200, 0, 0, 0, 0)
-        df.reset_machine_matrix(self.Plane_ID_ally, 0+random.randint(-100, 100), 3500+random.randint(-100, 100), -4000+random.randint(-100, 100), 0, 0, 0)
-
+        df.set_health("ennemy_2", 1)
+        self.oppo_health = 1 # gai
+        df.reset_machine_matrix(self.Plane_ID_oppo, 0, 4200, 3000, 0, 0, 0)
+        df.reset_machine_matrix(self.Plane_ID_ally, 0, 3020, 3000, 0, 0, 0)
+        df.update_scene()
         df.set_plane_thrust(self.Plane_ID_ally, 1)
         df.set_plane_thrust(self.Plane_ID_oppo, 0.6)
-        df.set_plane_linear_speed(self.Plane_ID_ally, 300)
+        df.set_plane_linear_speed(self.Plane_ID_ally, 210)
         df.set_plane_linear_speed(self.Plane_ID_oppo, 200)
-        df.retract_gear(self.Plane_ID_ally)
+        # df.retract_gear(self.Plane_ID_ally)
         df.retract_gear(self.Plane_ID_oppo)
 
-    def _reset_missile(self): #
+    def _reset_missile(self): # gai
         self.now_missile_state = False
         df.rearm_machine(self.Plane_ID_ally) # 重新装填导弹
 
@@ -175,6 +141,8 @@ class HarfangEnv_test1():
                        plane_state["Euler_angles"][2] / NormStates["Plane_Euler_angles"]]
         Plane_Heading = plane_state["heading"] / NormStates["Plane_heading"]
 
+
+
         # Opponent States
         Oppo_state = df.get_plane_state(self.Plane_ID_oppo)
 
@@ -186,14 +154,14 @@ class HarfangEnv_test1():
         Oppo_Roll_Att = Oppo_state["roll_attitude"] / NormStates["Plane_roll_attitude"]
 
         self.plane_heading_2 = Oppo_state["heading"]
-        self.plane_heading = plane_state["heading"] #
+        self.plane_heading = plane_state["heading"] # gai
         self.Plane_Irtifa = plane_state["position"][1]
         self.Aircraft_Loc = plane_state["position"]
         self.Oppo_Loc = Oppo_state["position"]
 
         self.Ally_target_locked = self.n_Ally_target_locked
         self.n_Ally_target_locked = plane_state["target_locked"]
-        if self.n_Ally_target_locked == True: # 
+        if self.n_Ally_target_locked == True: # gai 
             locked = 1
         else:
             locked = -1
@@ -205,7 +173,7 @@ class HarfangEnv_test1():
         
         self.oppo_health = df.get_health(self.Plane_ID_oppo)
         
-        oppo_hea = self.oppo_health['health_level'] # 敌机初始血量为20
+        oppo_hea = self.oppo_health['health_level'] # gai 敌机初始血量为20
 
         # if self.now_missile_state == True:
         #     if_fire = 1
@@ -222,7 +190,7 @@ class HarfangEnv_test1():
             missile1_state = -1
 
         States = np.concatenate((Pos_Diff, Plane_Euler, Plane_Heading,
-                                 Oppo_Heading, Oppo_Pitch_Att, Oppo_Roll_Att, target_angle, oppo_hea, locked, missile1_state), axis=None) # 感觉加入敌机健康值没用
+                                 Oppo_Heading, Oppo_Pitch_Att, Oppo_Roll_Att, target_angle, oppo_hea, locked, missile1_state), axis=None) # gai 感觉加入敌机健康值没用
         
         # 距离差距(3), 飞机欧拉角(3), 飞机航向角, 敌机航向角， 敌机俯仰， 敌机滚动, 锁敌角, 敌机血量， 是否锁敌， 导弹状态
 
@@ -232,27 +200,12 @@ class HarfangEnv_test1():
 
     def get_pos(self):
         plane_state = df.get_plane_state(self.Plane_ID_ally)
-        return np.array([plane_state["position"][0],
-                plane_state["position"][1],
-                plane_state["position"][2]])
+        return np.array([plane_state["position"][0] / NormStates["Plane_position"],
+                plane_state["position"][1] / NormStates["Plane_position"],
+                plane_state["position"][2] / NormStates["Plane_position"]])
 
     def get_oppo_pos(self):
         plane_state = df.get_plane_state(self.Plane_ID_oppo)
-        return np.array([plane_state["position"][0],
-                plane_state["position"][1],
-                plane_state["position"][2]])
-
-    def save_parameters_to_txt(self, log_dir):
-        # os.makedirs(log_dir)
-        source_code1 = inspect.getsource(self._get_reward)
-        source_code2 = inspect.getsource(self._reset_machine)
-        source_code3 = inspect.getsource(self._get_termination)
-
-
-        filename = os.path.join(log_dir, "log2.txt")
-        with open(filename, 'w') as file:
-            file.write(source_code1)
-            file.write(' ')
-            file.write(source_code2)
-            file.write(' ')
-            file.write(source_code3)
+        return np.array([plane_state["position"][0] / NormStates["Plane_position"],
+                plane_state["position"][1] / NormStates["Plane_position"],
+                plane_state["position"][2] / NormStates["Plane_position"]])

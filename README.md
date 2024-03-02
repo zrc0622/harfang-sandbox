@@ -52,6 +52,14 @@
     # BC
     python train_all.py --agent BC --port 12345 --model_name bc
     ```
+    ```
+    # SAC
+    python train_sac.py --type sac --port 12345 --model_name sac
+    ```
+    ```
+    # E-SAC
+    python train_sac.py --type esac --port 12345 --model_name esac
+    ```
 ## 测试
 1. 在`Harfang3D sandbox`下的`source`文件夹，使用以下命令打开`Harfang3D sandbox`，使用`network_port`指定端口号，打开后进入网络模式
     ```
@@ -61,6 +69,6 @@
     ```
     # 在相应训练代码后添加'--test --test_mode 1'即可，其中test mode 1为随机初始化，test mode 2为无限导弹，test mode 3为原始环境测试
     # 以下为一个例子
-    python train_all.py --agent ROT --port 12345 --type soft --model_name srot --test --test_mode 1
+    python train_all.py --agent ROT --port 12345 --type soft --model_name srot --test --test_mode 1 --seed 1
     ```
 

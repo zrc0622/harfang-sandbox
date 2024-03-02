@@ -60,7 +60,7 @@ class HarfangEnv():
         self._get_reward()  # get reward value
         self._get_termination()  # check termination conditions
         # df.rearm_machine(self.Plane_ID_ally) # 重新装填导弹
-        return state_ally, self.reward, self.done, {}, self.now_missile_state, self.missile1_state, self.n_missile1_state, self.Ally_target_locked, self.reward
+        return state_ally, self.reward, self.done, {}, self.now_missile_state, self.missile1_state, self.n_missile1_state, self.Ally_target_locked, self.reward, self.success
     
     def _get_reward(self):
         self.reward = 0
@@ -161,13 +161,13 @@ class HarfangEnv():
     def _get_observation(self): # 注意get的是n_state
         # Plane States
         plane_state = df.get_plane_state(self.Plane_ID_ally)
-        Plane_Pos = [plane_state["position"][0] / NormStates["Plane_position"],
-                     plane_state["position"][1] / NormStates["Plane_position"],
-                     plane_state["position"][2] / NormStates["Plane_position"]]
+        Plane_Pos = [plane_state["position"][0] / NormStates["Plane_position"], # 俯仰：俯0 -> pai/2，仰0 -> -pai/2
+                     plane_state["position"][1] / NormStates["Plane_position"], # 航向角，0 -> pai -> -pai -> 0
+                     plane_state["position"][2] / NormStates["Plane_position"]] # 横滚角，顺时针：0 -> -pai -> pai -> 0
         Plane_Euler = [plane_state["Euler_angles"][0] / NormStates["Plane_Euler_angles"],
                        plane_state["Euler_angles"][1] / NormStates["Plane_Euler_angles"],
                        plane_state["Euler_angles"][2] / NormStates["Plane_Euler_angles"]]
-        Plane_Heading = plane_state["heading"] / NormStates["Plane_heading"]
+        Plane_Heading = plane_state["heading"] / NormStates["Plane_heading"] # 航向角，0 -> 360
 
         # Opponent States
         Oppo_state = df.get_plane_state(self.Plane_ID_oppo)
@@ -176,8 +176,8 @@ class HarfangEnv():
                     Oppo_state["position"][1] / NormStates["Plane_position"],
                     Oppo_state["position"][2] / NormStates["Plane_position"]]
         Oppo_Heading = Oppo_state["heading"] / NormStates["Plane_heading"]
-        Oppo_Pitch_Att = Oppo_state["pitch_attitude"] / NormStates["Plane_pitch_attitude"]
-        Oppo_Roll_Att = Oppo_state["roll_attitude"] / NormStates["Plane_roll_attitude"]
+        Oppo_Pitch_Att = Oppo_state["pitch_attitude"] / NormStates["Plane_pitch_attitude"] # 俯仰：俯0 -> -90，仰0 -> 90 
+        Oppo_Roll_Att = Oppo_state["roll_attitude"] / NormStates["Plane_roll_attitude"] # 横滚角，顺时针：0 -> -90 ->0 -> 90 -> 0
 
         self.plane_heading_2 = Oppo_state["heading"]
         self.plane_heading = plane_state["heading"] #
