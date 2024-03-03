@@ -69,9 +69,9 @@ def main(config):
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    log_dir = './logs3/SAC/esac_7/log/2024_3_1_0_50'
-    model_dir = './logs3/SAC/esac_7/log/2024_3_1_0_50/model'
-    model_name = 'Agent4_0_-10113.pth'
+    log_dir = 'logs4/SAC/esac_34/log/2024_3_2_10_17'
+    model_dir = 'logs4/SAC/esac_34/log/2024_3_2_10_17/model'
+    model_name = 'Agent7_100_-1430.pth'
 
     agent = SACAgent(observation_space=state_space, action_space=action_space, log_dir=log_dir, batch_size=batchSize, lr=actorLR, hidden_units = [hiddenLayer1, hiddenLayer2],
                      memory_size=bufferSize, gamma=gamma, tau=tau)
@@ -88,10 +88,11 @@ def main(config):
         success = 0
         fire_success = 0
         validationEpisodes = 50
+        r=0
         for e in tqdm(range(validationEpisodes)):
             state = env.reset()
-            totalReward = 0
             point = 0
+            totalReward = 0
             done = False
             for step in range(validationStep):
                 if not done:
@@ -111,7 +112,8 @@ def main(config):
                     
                     if step_success == 1:
                         point = 1
-                        
+            r += totalReward
+        print('Fianl reward:', r/validationEpisodes)              
         print('Fall Success Ratio:', success / validationEpisodes)
         print('Fire Success Ratio', fire_success / validationEpisodes)
 
@@ -141,7 +143,6 @@ def main(config):
                         print('total fire is:', env.total_fire,'total success is', env.total_success)
                         print('two aircrafts collided')
                     break
-        print('total fire is:', env.total_fire,'total success is', env.total_success)
     
     elif test_mode == 3:
         print('test mode 3')
@@ -149,6 +150,7 @@ def main(config):
         success = 0
         fire_success = 0
         validationEpisodes = 50
+        r = 0
         for e in tqdm(range(validationEpisodes)):
             state = env.reset()
             totalReward = 0
@@ -172,9 +174,75 @@ def main(config):
                     
                     if step_success == 1:
                         point = 1
-                        
+            r += totalReward
+        print('Fianl reward:', r/validationEpisodes)           
         print('Fall Success Ratio:', success / validationEpisodes)
         print('Fire Success Ratio', fire_success / validationEpisodes)
+
+    elif test_mode == 4:
+        print('test mode 4')
+        env = HarfangEnv_test1()
+        success = 0
+        fire_success = 0
+        validationEpisodes = 50
+        r = 0
+        for e in tqdm(range(validationEpisodes)):
+            state = env.reset()
+            point = 0
+            totalReward = 0
+            done = False
+            for step in range(validationStep):
+                if not done:
+                    action = agent.exploit(state)
+                    n_state, reward, done, info, iffire, beforeaction, afteraction, locked, reward, step_success   = env.step_test(action)
+                    state = n_state
+                    totalReward += reward
+
+                    if step is validationStep - 1:
+                        break
+                    
+                    if done:
+                        if env.episode_success:
+                            success += 1
+                        if point == 1:
+                            fire_success += 1
+                    
+                    if step_success == 1:
+                        point = 1
+            r += totalReward
+        print('Fianl reward:', r/validationEpisodes)
+    elif test_mode == 5:
+        print('test mode 5')
+        env = HarfangEnv()
+        success = 0
+        fire_success = 0
+        validationEpisodes = 50
+        r = 0
+        for e in tqdm(range(validationEpisodes)):
+            state = env.reset()
+            totalReward = 0
+            point = 0
+            done = False
+            for step in range(validationStep):
+                if not done:
+                    action = agent.exploit(state)
+                    n_state, reward, done, info, iffire, beforeaction, afteraction, locked, reward, step_success   = env.step_test(action)
+                    state = n_state
+                    totalReward += reward
+
+                    if step is validationStep - 1:
+                        break
+                    
+                    if done:
+                        if env.episode_success:
+                            success += 1
+                        if point == 1:
+                            fire_success += 1
+                    
+                    if step_success == 1:
+                        point = 1
+            r += totalReward
+        print('Fianl reward:', r/validationEpisodes)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()

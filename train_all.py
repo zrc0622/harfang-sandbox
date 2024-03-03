@@ -410,6 +410,7 @@ def main(config):
             success = 0
             fire_success = 0
             validationEpisodes = 50
+            r=0
             for e in tqdm(range(validationEpisodes)):
                 state = env.reset()
                 point = 0
@@ -433,7 +434,8 @@ def main(config):
                         
                         if step_success == 1:
                             point = 1
-                           
+                r += totalReward
+            print('Fianl reward:', r/validationEpisodes)              
             print('Fall Success Ratio:', success / validationEpisodes)
             print('Fire Success Ratio', fire_success / validationEpisodes)
 
@@ -470,6 +472,7 @@ def main(config):
             success = 0
             fire_success = 0
             validationEpisodes = 50
+            r = 0
             for e in tqdm(range(validationEpisodes)):
                 state = env.reset()
                 totalReward = 0
@@ -493,9 +496,75 @@ def main(config):
                         
                         if step_success == 1:
                             point = 1
-                           
+                r += totalReward
+            print('Fianl reward:', r/validationEpisodes)           
             print('Fall Success Ratio:', success / validationEpisodes)
             print('Fire Success Ratio', fire_success / validationEpisodes)
+
+        elif test_mode == 4:
+            print('test mode 4')
+            env = HarfangEnv_test1()
+            success = 0
+            fire_success = 0
+            validationEpisodes = 50
+            r = 0
+            for e in tqdm(range(validationEpisodes)):
+                state = env.reset()
+                point = 0
+                totalReward = 0
+                done = False
+                for step in range(validationStep):
+                    if not done:
+                        action = agent.chooseActionNoNoise(state)
+                        n_state, reward, done, info, iffire, beforeaction, afteraction, locked, reward, step_success   = env.step_test(action)
+                        state = n_state
+                        totalReward += reward
+
+                        if step is validationStep - 1:
+                            break
+                        
+                        if done:
+                            if env.episode_success:
+                                success += 1
+                            if point == 1:
+                                fire_success += 1
+                        
+                        if step_success == 1:
+                            point = 1
+                r += totalReward
+            print('Fianl reward:', r/validationEpisodes)
+        elif test_mode == 5:
+            print('test mode 5')
+            env = HarfangEnv()
+            success = 0
+            fire_success = 0
+            validationEpisodes = 50
+            r = 0
+            for e in tqdm(range(validationEpisodes)):
+                state = env.reset()
+                totalReward = 0
+                point = 0
+                done = False
+                for step in range(validationStep):
+                    if not done:
+                        action = agent.chooseActionNoNoise(state)
+                        n_state, reward, done, info, iffire, beforeaction, afteraction, locked, reward, step_success   = env.step_test(action)
+                        state = n_state
+                        totalReward += reward
+
+                        if step is validationStep - 1:
+                            break
+                        
+                        if done:
+                            if env.episode_success:
+                                success += 1
+                            if point == 1:
+                                fire_success += 1
+                        
+                        if step_success == 1:
+                            point = 1
+                r += totalReward
+            print('Fianl reward:', r/validationEpisodes)
             
     
 if __name__=='__main__':
