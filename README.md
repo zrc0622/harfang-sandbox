@@ -3,8 +3,8 @@
 ## 实验结果
 
 <p float="left">
-  <img src="results/vr.png" width="50%" />
-  <img src="results/vsr.png" width="50%" />
+  <img src="results/vr.png" width="45%" />
+  <img src="results/vsr.png" width="45%" />
 </p>
 
 
